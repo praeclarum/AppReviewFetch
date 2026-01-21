@@ -18,7 +18,7 @@ dotnet tool install -g AppReviewFetch.Mcp
 
 ### Prerequisites
 
-1. **App Store Connect API Credentials** - See the [main README](../README.md#setup) for setup instructions
+1. **App Store Connect API Credentials** - You'll need an API key from App Store Connect (instructions below)
 2. Configure credentials by running the CLI tool first:
 
 ```bash
@@ -28,6 +28,13 @@ dotnet tool install -g AppReviewFetch.Cli
 # Run setup
 arfetch setup
 ```
+
+### Getting App Store Connect API Credentials
+
+1. Go to [App Store Connect](https://appstoreconnect.apple.com/) → **Users and Access** → **Keys**
+2. Generate an API key with **App Manager**, **Customer Support**, or **Admin** access
+3. Download the `.p8` file and note your **Key ID** and **Issuer ID**
+4. Run `arfetch setup` to configure credentials interactively
 
 ## 📦 Configuration
 
@@ -177,38 +184,7 @@ Claude: I'll use the AppReviewFetch MCP server to analyze your reviews.
 [Provides detailed analysis with quotes from actual reviews]
 ```
 
-## 🐳 Deployment Options
-
-### Docker Container
-
-The project supports containerization for remote deployment:
-
-```bash
-# Build container
-dotnet publish /t:PublishContainer
-
-# Push to registry
-dotnet publish /t:PublishContainer -p ContainerRegistry=docker.io -p ContainerRepository=yourusername/appreviewfetch-mcp
-
-# Configure in mcp.json
-{
-  "servers": {
-    "appreviewfetch": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "yourusername/appreviewfetch-mcp"],
-      "env": {
-        "CREDENTIALS_PATH": "/path/to/Credentials.json"
-      }
-    }
-  }
-}
-```
-
-### Azure Functions / Remote MCP
-
-For SSE (Server-Sent Events) transport and remote hosting, see the [Azure Functions MCP samples](https://github.com/Azure-Samples/remote-mcp-functions-dotnet/).
-
-## 🔧 Development & Testing
+##  Development & Testing
 
 ### Testing with MCP Inspector
 
@@ -276,12 +252,12 @@ The MCP server implements smart pagination strategies:
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
 - [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk)
 - [Building MCP Servers in C#](https://devblogs.microsoft.com/dotnet/build-a-model-context-protocol-mcp-server-in-csharp/)
-- [Main AppReviewFetch README](../README.md)
+- [AppReviewFetch on GitHub](https://github.com/praeclarum/AppReviewFetch)
 
 ## 🤝 Contributing
 
-This is part of the [AppReviewFetch](https://github.com/praeclarum/AppReviewFetch) project. Contributions welcome!
+Contributions welcome at [github.com/praeclarum/AppReviewFetch](https://github.com/praeclarum/AppReviewFetch)
 
 ## 📄 License
 
-MIT - See [LICENSE](../LICENSE)
+MIT License - Copyright © 2026 praeclarum

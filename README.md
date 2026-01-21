@@ -1,6 +1,6 @@
 # AppReviewFetch
 
-A .NET library, CLI tool, and MCP server for fetching app reviews from App Store Connect and Google Play.
+A .NET library, CLI tool, and MCP server for fetching app reviews from App Store Connect (with Google Play support in development).
 
 ## 📦 Installation
 
@@ -23,7 +23,7 @@ Access your app reviews directly from GitHub Copilot, Claude, and other AI assis
 dotnet tool install -g AppReviewFetch.Mcp
 ```
 
-See [MCP Setup Guide](AppReviewFetchMcp/README.md) for configuration with VS Code, Claude Desktop, and other clients.
+For configuration instructions, visit: https://github.com/praeclarum/AppReviewFetch/tree/main/AppReviewFetchMcp#readme
 
 ### Library (For .NET Developers)
 
@@ -33,7 +33,7 @@ dotnet add package AppReviewFetch
 
 Or add to your `.csproj`:
 ```xml
-<PackageReference Include="AppReviewFetch" Version="1.0.0" />
+<PackageReference Include="AppReviewFetch" />
 ```
 
 ## 🚀 Quick Start (CLI)
