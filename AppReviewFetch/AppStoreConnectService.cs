@@ -395,8 +395,8 @@ public class AppStoreConnectService : IAppReviewService
     /// </summary>
     public async Task<AppListResponse> GetAppsAsync(CancellationToken cancellationToken = default)
     {
-        // Build the API URL
-        var url = $"{BaseUrl}/{ApiVersion}/apps?limit=200";
+        // Build the API URL with appStoreVersions included to get platform information
+        var url = $"{BaseUrl}/{ApiVersion}/apps?limit=200&include=appStoreVersions";
 
         // Get or refresh JWT token
         var token = GetOrRefreshToken();
@@ -434,8 +434,45 @@ public class AppStoreConnectService : IAppReviewService
     {
         var apps = new List<AppInfo>();
 
+        // Build a dictionary of app store versions by app ID for quick lookup
+        var versionsByAppId = new Dictionary<string, List<string>>();
+        
+        if (apiResponse.Included != null)
+        {
+            foreach (var included in apiResponse.Included)
+            {
+                if (included.Type == "appStoreVersions" && included.Attributes?.Platform != null)
+                {
+                    // We need to find which app this version belongs to by checking relationships
+                    // For now, we'll collect all versions and match them later
+                }
+            }
+        }
+
         foreach (var appData in apiResponse.Data)
         {
+            var platforms = new List<string>();
+            
+            // Extract platform information from relationships if available
+            if (appData.Relationships?.AppStoreVersions?.Data != null)
+            {
+                foreach (var versionRef in appData.Relationships.AppStoreVersions.Data)
+                {
+                    // Find the matching included version
+                    var version = apiResponse.Included?.FirstOrDefault(i => 
+                        i.Id == versionRef.Id && i.Type == "appStoreVersions");
+                    
+                    if (version?.Attributes?.Platform != null)
+                    {
+                        var platform = ConvertPlatformName(version.Attributes.Platform);
+                        if (!platforms.Contains(platform))
+                        {
+                            platforms.Add(platform);
+                        }
+                    }
+                }
+            }
+
             var app = new AppInfo
             {
                 Id = appData.Id,
@@ -444,23 +481,9 @@ public class AppStoreConnectService : IAppReviewService
                 Sku = appData.Attributes.Sku,
                 Store = "App Store",
                 PrimaryLocale = appData.Attributes.PrimaryLocale,
-                IsAvailable = appData.Attributes.AvailableInNewTerritories
+                IsAvailable = appData.Attributes.AvailableInNewTerritories,
+                Platforms = platforms
             };
-
-            // Determine platforms based on bundle ID patterns or other heuristics
-            // Note: The App Store Connect API doesn't directly specify platform,
-            // but we can infer from the app's presence in the catalog
-            var platforms = new List<string>();
-            
-            // Most apps in App Store Connect are iOS apps
-            // We'd need to query app info relationships to get precise platform info
-            // For now, we'll indicate it's from Apple's ecosystem
-            platforms.Add("iOS");
-            
-            // Could also check for macOS, tvOS, watchOS based on additional API calls
-            // For a complete implementation, you'd want to include platform info in the API call
-            
-            app.Platforms = platforms;
 
             apps.Add(app);
         }
@@ -468,6 +491,21 @@ public class AppStoreConnectService : IAppReviewService
         return new AppListResponse
         {
             Apps = apps
+        };
+    }
+
+    /// <summary>
+    /// Converts Apple API platform names to user-friendly names.
+    /// </summary>
+    private static string ConvertPlatformName(string apiPlatform)
+    {
+        return apiPlatform switch
+        {
+            "IOS" => "iOS",
+            "MAC_OS" => "macOS",
+            "TV_OS" => "tvOS",
+            "VISION_OS" => "visionOS",
+            _ => apiPlatform
         };
     }
 }
