@@ -142,8 +142,7 @@ The wizard creates a structured credentials file that supports multiple app stor
   "appStoreConnect": {
     "keyId": "...",
     "issuerId": "...",
-    "privateKey": "...",
-    "appId": "..."
+    "privateKey": "..."
   }
 }
 ```

@@ -64,8 +64,7 @@ Run `arfetch setup` or manually create:
   "appStoreConnect": {
     "keyId": "YOUR_KEY_ID",
     "issuerId": "YOUR_ISSUER_ID",
-    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-    "appId": "YOUR_APP_ID"
+    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
   }
 }
 ```

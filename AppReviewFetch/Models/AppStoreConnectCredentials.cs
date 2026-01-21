@@ -24,10 +24,4 @@ public class AppStoreConnectCredentials
     /// </summary>
     [JsonPropertyName("privateKey")]
     public string PrivateKey { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Default App ID to use if not specified in requests.
-    /// </summary>
-    [JsonPropertyName("appId")]
-    public string? AppId { get; set; }
 }

@@ -94,11 +94,7 @@ public class CommandHandler
                 content.AppendLine($"  Key ID: [cyan]{MaskString(credentials.KeyId)}[/]");
                 content.AppendLine($"  Issuer ID: [cyan]{MaskString(credentials.IssuerId)}[/]");
                 content.AppendLine($"  Private Key: {(string.IsNullOrWhiteSpace(credentials.PrivateKey) ? "[red]✗ Missing[/]" : "[green]✓ Present[/]")}");
-                
-                if (!string.IsNullOrWhiteSpace(credentials.AppId))
-                {
-                    content.AppendLine($"  Default App ID: [cyan]{credentials.AppId}[/]");
-                }
+
 
                 content.AppendLine();
 
@@ -185,8 +181,6 @@ public class CommandHandler
 
         var privateKey = string.Join("\n", privateKeyLines);
 
-        var appId = AnsiConsole.Ask<string>("[cyan]Default App ID[/] (optional, press Enter to skip):", string.Empty);
-
         // Create credentials object
         var credentials = new Credentials
         {
@@ -194,8 +188,7 @@ public class CommandHandler
             {
                 KeyId = keyId,
                 IssuerId = issuerId,
-                PrivateKey = privateKey,
-                AppId = string.IsNullOrWhiteSpace(appId) ? null : appId
+                PrivateKey = privateKey
             }
         };
 
