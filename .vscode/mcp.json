@@ -9,6 +9,10 @@
         "--project",
         "${workspaceFolder}/AppReviewFetchMcp/AppReviewFetchMcp.csproj"
       ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     }
   }
 }
