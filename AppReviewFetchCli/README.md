@@ -136,6 +136,18 @@ The `setup` command walks you through creating your credentials file:
 3. Private Key (paste entire P8 file content)
 4. Default App ID (optional)
 
+The wizard creates a structured credentials file that supports multiple app stores:
+```json
+{
+  "appStoreConnect": {
+    "keyId": "...",
+    "issuerId": "...",
+    "privateKey": "...",
+    "appId": "..."
+  }
+}
+```
+
 Credentials are saved to:
 - **Windows:** `%LOCALAPPDATA%\AppReviewFetch\Credentials.json`
 - **macOS/Linux:** `~/.config/AppReviewFetch/Credentials.json`

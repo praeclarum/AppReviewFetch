@@ -236,12 +236,16 @@ public class AppStoreConnectService : IAppReviewService
             }
 
             var json = File.ReadAllText(credentialsPath);
-            var credentials = JsonSerializer.Deserialize<AppStoreConnectCredentials>(json);
+            var rootCredentials = JsonSerializer.Deserialize<Credentials>(json);
 
-            if (credentials == null)
+            if (rootCredentials?.AppStoreConnect == null)
             {
-                throw new CredentialsException("Failed to deserialize credentials file");
+                throw new CredentialsException(
+                    "App Store Connect credentials not found in credentials file. " +
+                    "Please ensure the file contains an 'appStoreConnect' property.");
             }
+
+            var credentials = rootCredentials.AppStoreConnect;
 
             // Validate required fields
             if (string.IsNullOrWhiteSpace(credentials.KeyId) ||

@@ -85,10 +85,11 @@ public class CommandHandler
         try
         {
             var json = await File.ReadAllTextAsync(_credentialsPath);
-            var credentials = JsonSerializer.Deserialize<AppStoreConnectCredentials>(json);
+            var rootCredentials = JsonSerializer.Deserialize<Credentials>(json);
 
-            if (credentials != null)
+            if (rootCredentials?.AppStoreConnect != null)
             {
+                var credentials = rootCredentials.AppStoreConnect;
                 content.AppendLine("[bold]Credentials:[/]");
                 content.AppendLine($"  Key ID: [cyan]{MaskString(credentials.KeyId)}[/]");
                 content.AppendLine($"  Issuer ID: [cyan]{MaskString(credentials.IssuerId)}[/]");
@@ -186,12 +187,15 @@ public class CommandHandler
         var appId = AnsiConsole.Ask<string>("[cyan]Default App ID[/] (optional, press Enter to skip):", string.Empty);
 
         // Create credentials object
-        var credentials = new AppStoreConnectCredentials
+        var credentials = new Credentials
         {
-            KeyId = keyId,
-            IssuerId = issuerId,
-            PrivateKey = privateKey,
-            AppId = string.IsNullOrWhiteSpace(appId) ? null : appId
+            AppStoreConnect = new AppStoreConnectCredentials
+            {
+                KeyId = keyId,
+                IssuerId = issuerId,
+                PrivateKey = privateKey,
+                AppId = string.IsNullOrWhiteSpace(appId) ? null : appId
+            }
         };
 
         // Save to file
