@@ -6,14 +6,19 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
-    
     <!-- .NET Tool Configuration -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>arfetch</ToolCommandName>
     <PackageId>AppReviewFetch.Cli</PackageId>
     <Version>1.0.0</Version>
-    <Authors>AppReviewFetch</Authors>
+    <Authors>praeclarum</Authors>
     <Description>CLI tool for fetching app reviews from App Store Connect and other stores</Description>
+    <PackageTags>appstore;reviews;apple;googleplay;windows;cli;dotnet;tool</PackageTags>
+    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>../README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/praeclarum/AppReviewFetch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/praeclarum/AppReviewFetch</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

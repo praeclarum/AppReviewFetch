@@ -1,10 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
+    <!-- NuGet package metadata -->
+    <PackageId>AppReviewFetch</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>praeclarum</Authors>
+    <Description>.NET library for fetching app reviews from App Store Connect and other stores</Description>
+    <PackageTags>appstore;reviews;apple;googleplay;windows;cli;dotnet;library</PackageTags>
+    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>../README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/praeclarum/AppReviewFetch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/praeclarum/AppReviewFetch</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
