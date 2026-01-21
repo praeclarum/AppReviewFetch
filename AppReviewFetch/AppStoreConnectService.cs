@@ -385,4 +385,85 @@ public class AppStoreConnectService : IAppReviewService
             $"Request failed with status {response.StatusCode}: {content}"
         );
     }
+
+    /// <summary>
+    /// Lists all apps accessible with the current credentials.
+    /// </summary>
+    public async Task<AppListResponse> GetAppsAsync(CancellationToken cancellationToken = default)
+    {
+        // Build the API URL
+        var url = $"{BaseUrl}/{ApiVersion}/apps?limit=200";
+
+        // Get or refresh JWT token
+        var token = GetOrRefreshToken();
+
+        // Create HTTP request
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+        httpRequest.Headers.Add("Authorization", $"Bearer {token}");
+        httpRequest.Headers.Add("Accept", "application/json");
+
+        // Execute request
+        var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        // Handle response
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            await ThrowApiErrorAsync(response, content);
+        }
+
+        // Parse and transform response
+        var apiResponse = JsonSerializer.Deserialize<AppsResponse>(content);
+        if (apiResponse == null)
+        {
+            throw new AppReviewFetchException("Failed to deserialize API response");
+        }
+
+        return TransformAppsResponse(apiResponse);
+    }
+
+    /// <summary>
+    /// Transforms the App Store Connect apps response into our standard format.
+    /// </summary>
+    private AppListResponse TransformAppsResponse(AppsResponse apiResponse)
+    {
+        var apps = new List<AppInfo>();
+
+        foreach (var appData in apiResponse.Data)
+        {
+            var app = new AppInfo
+            {
+                Id = appData.Id,
+                Name = appData.Attributes.Name,
+                BundleId = appData.Attributes.BundleId,
+                Sku = appData.Attributes.Sku,
+                Store = "App Store",
+                PrimaryLocale = appData.Attributes.PrimaryLocale,
+                IsAvailable = appData.Attributes.AvailableInNewTerritories
+            };
+
+            // Determine platforms based on bundle ID patterns or other heuristics
+            // Note: The App Store Connect API doesn't directly specify platform,
+            // but we can infer from the app's presence in the catalog
+            var platforms = new List<string>();
+            
+            // Most apps in App Store Connect are iOS apps
+            // We'd need to query app info relationships to get precise platform info
+            // For now, we'll indicate it's from Apple's ecosystem
+            platforms.Add("iOS");
+            
+            // Could also check for macOS, tvOS, watchOS based on additional API calls
+            // For a complete implementation, you'd want to include platform info in the API call
+            
+            app.Platforms = platforms;
+
+            apps.Add(app);
+        }
+
+        return new AppListResponse
+        {
+            Apps = apps
+        };
+    }
 }

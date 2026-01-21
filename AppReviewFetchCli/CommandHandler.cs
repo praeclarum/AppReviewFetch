@@ -38,6 +38,7 @@ public class CommandHandler
         table.AddRow("help", "h, ?", "Show this help message");
         table.AddRow("status", "s", "Show credentials and authentication status");
         table.AddRow("setup", "", "Interactive wizard to configure credentials");
+        table.AddRow("list", "l", "List all apps accessible with current credentials");
         table.AddRow("fetch <appId>", "f <appId>", "Fetch reviews for an app (supports pagination)");
         table.AddRow("export [file]", "e [file]", "Export all fetched reviews to CSV");
         table.AddRow("clear", "cls", "Clear the screen");
@@ -46,6 +47,7 @@ public class CommandHandler
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Examples:[/]");
+        AnsiConsole.MarkupLine("  [cyan]list[/] - List all your apps");
         AnsiConsole.MarkupLine("  [cyan]fetch 123456789[/] - Fetch reviews for app 123456789");
         AnsiConsole.MarkupLine("  [cyan]f 123456789 US[/] - Fetch US reviews only");
         AnsiConsole.MarkupLine("  [cyan]export reviews.csv[/] - Export to specific file");
@@ -487,5 +489,67 @@ public class CommandHandler
         }
 
         return value;
+    }
+
+    public async Task ListAppsAsync()
+    {
+        try
+        {
+            var service = new AppStoreConnectService();
+            
+            // Fetch apps with progress indicator
+            var response = await AnsiConsole.Status()
+                .StartAsync("Fetching apps...", async ctx =>
+                {
+                    return await service.GetAppsAsync();
+                });
+
+            if (response.Apps.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No apps found[/]");
+                return;
+            }
+
+            // Display apps in a table
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderColor(Color.Blue);
+
+            table.AddColumn(new TableColumn("[bold cyan]App ID[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Name[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Bundle ID[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Platform(s)[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Store[/]").LeftAligned());
+
+            foreach (var app in response.Apps)
+            {
+                var platforms = app.Platforms.Count > 0 
+                    ? string.Join(", ", app.Platforms) 
+                    : "[dim]Unknown[/]";
+
+                table.AddRow(
+                    $"[cyan]{app.Id}[/]",
+                    Markup.Escape(app.Name),
+                    $"[dim]{app.BundleId ?? "N/A"}[/]",
+                    platforms,
+                    $"[green]{app.Store}[/]"
+                );
+            }
+
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[green]Total: {response.Apps.Count} app(s)[/]");
+            AnsiConsole.MarkupLine("[dim]Use the App ID with 'fetch <appId>' to get reviews[/]");
+        }
+        catch (CredentialsException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Credentials Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine("[yellow]Run 'setup' to configure credentials[/]");
+        }
+        catch (ApiErrorException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
     }
 }

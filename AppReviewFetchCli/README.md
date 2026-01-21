@@ -56,12 +56,24 @@ dotnet run
 | `help` | `h`, `?` | Show help message with all commands |
 | `status` | `s` | Show credentials and authentication status |
 | `setup` | | Interactive wizard to configure credentials |
+| `list` | `l` | List all apps accessible with current credentials |
 | `fetch <appId>` | `f <appId>` | Fetch reviews for an app (supports pagination) |
 | `export [file]` | `e [file]` | Export all fetched reviews to CSV |
 | `clear` | `cls` | Clear the screen |
 | `exit` | `quit`, `q` | Exit the application |
 
 ## Examples
+
+### List Your Apps
+```
+arfetch> list
+```
+Displays a table of all apps accessible with your credentials:
+- App ID (use this for fetching reviews)
+- App Name
+- Bundle ID
+- Platform(s)
+- Store
 
 ### Check Status
 ```

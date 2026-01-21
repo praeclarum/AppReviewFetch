@@ -14,6 +14,7 @@ dotnet run
 # In the REPL
 arfetch> setup      # Configure your credentials
 arfetch> status     # Verify everything works
+arfetch> list       # List all your apps
 arfetch> fetch 123456789   # Fetch reviews
 arfetch> export     # Save to CSV
 ```
@@ -158,6 +159,23 @@ catch (CredentialsException ex)
 }
 ```
 
+### List Apps
+
+```csharp
+// List all apps accessible with your credentials
+var appsResponse = await service.GetAppsAsync();
+
+foreach (var app in appsResponse.Apps)
+{
+    Console.WriteLine($"ID: {app.Id}");
+    Console.WriteLine($"Name: {app.Name}");
+    Console.WriteLine($"Bundle ID: {app.BundleId}");
+    Console.WriteLine($"Platforms: {string.Join(", ", app.Platforms)}");
+    Console.WriteLine($"Store: {app.Store}");
+    Console.WriteLine();
+}
+```
+
 ### Using with Dependency Injection
 
 ```csharp
@@ -202,6 +220,7 @@ var request = new ReviewRequest
 ## Features
 
 - ✅ **JWT Authentication** - Automatic token generation and caching
+- ✅ **App Listing** - List all apps accessible with credentials
 - ✅ **Pagination Support** - Navigate through large review sets
 - ✅ **Multiple Sort Orders** - Sort by date or rating
 - ✅ **Territory Filtering** - Filter reviews by country
@@ -218,7 +237,32 @@ Main interface for fetching reviews.
 
 #### Methods
 
-- `Task<ReviewPageResponse> GetReviewsAsync(string appId, ReviewRequest request, CancellationToken cancellationToken = default)`
+- `Task<ReviewPageResponse> GetReviewsAsync(string appId, ReviewRequest request, CancellationToken cancellationToken = default)` - Fetch reviews for a specific app
+- `Task<AppListResponse> GetAppsAsync(CancellationToken cancellationToken = default)` - List all accessible apps
+
+### AppListResponse
+
+Response containing a list of apps.
+
+#### Properties
+
+- `List<AppInfo> Apps` - List of apps
+
+### AppInfo
+
+Information about an application.
+
+#### Properties
+
+- `string Id` - Unique identifier (use with GetReviewsAsync)
+- `string Name` - App display name
+- `string? BundleId` - Bundle ID (iOS/macOS) or package name
+- `string? Sku` - Product SKU
+- `List<string> Platforms` - Available platforms (e.g., iOS, Android, Windows)
+- `string Store` - Store name (e.g., "App Store")
+- `string? PrimaryLocale` - Primary language code
+- `bool? IsAvailable` - Availability status
+- `string? CurrentVersion` - Current version in store
 
 ### ReviewRequest
 

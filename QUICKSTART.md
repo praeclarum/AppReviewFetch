@@ -60,7 +60,20 @@ This will show:
 - ✓ Authentication test
 - Session statistics
 
-### 5. Fetch Reviews
+### 5. List Your Apps
+
+```
+list
+```
+
+This displays all apps accessible with your credentials in a table:
+- App ID (needed for fetching reviews)
+- App Name
+- Bundle ID
+- Platforms
+- Store
+
+### 6. Fetch Reviews
 
 ```
 fetch YOUR_APP_ID
@@ -77,7 +90,7 @@ The CLI will:
 - Include developer responses
 - Offer pagination for more results
 
-### 6. Export to CSV
+### 7. Export to CSV
 
 After fetching reviews:
 ```
@@ -116,6 +129,7 @@ dotnet tool uninstall -g AppReviewFetch.Cli
 | `help` | `h`, `?` | Show all commands |
 | `status` | `s` | Check credentials & auth |
 | `setup` | - | Configure credentials |
+| `list` | `l` | List all apps |
 | `fetch <appId> [country]` | `f` | Fetch reviews |
 | `export [filename]` | `e` | Export to CSV |
 | `clear` | `cls` | Clear screen |

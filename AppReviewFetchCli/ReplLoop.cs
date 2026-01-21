@@ -90,6 +90,11 @@ public class ReplLoop
                 await _commandHandler.FetchReviewsAsync(arguments);
                 break;
 
+            case "list":
+            case "l":
+                await _commandHandler.ListAppsAsync();
+                break;
+
             case "export":
             case "e":
                 _commandHandler.ExportToCSV(arguments);

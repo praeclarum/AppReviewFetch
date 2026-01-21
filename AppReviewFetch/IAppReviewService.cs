@@ -13,4 +13,11 @@ public interface IAppReviewService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A page of reviews with pagination metadata.</returns>
     Task<ReviewPageResponse> GetReviewsAsync(string appId, ReviewRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists all apps accessible to this service.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of apps with their metadata.</returns>
+    Task<AppListResponse> GetAppsAsync(CancellationToken cancellationToken = default);
 }
