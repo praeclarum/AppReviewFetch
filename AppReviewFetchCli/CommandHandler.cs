@@ -39,8 +39,8 @@ public class CommandHandler
         table.AddRow("status", "s", "Show credentials and authentication status");
         table.AddRow("setup", "", "Interactive wizard to configure credentials");
         table.AddRow("list", "l", "List all apps accessible with current credentials");
-        table.AddRow("fetch <appId>", "f <appId>", "Fetch reviews for an app (supports pagination)");
-        table.AddRow("export [file]", "e [file]", "Export all fetched reviews to CSV");
+        table.AddRow("fetch [[appId]]", "f [[appId]]", "Fetch reviews for an app (supports pagination)");
+        table.AddRow("export [[file]]", "e [[file]]", "Export all fetched reviews to CSV");
         table.AddRow("clear", "cls", "Clear the screen");
         table.AddRow("exit", "quit, q", "Exit the application");
 
@@ -160,7 +160,9 @@ public class CommandHandler
 
         // Guided setup
         AnsiConsole.MarkupLine("[dim]You'll need your App Store Connect API credentials.[/]");
-        AnsiConsole.MarkupLine("[dim]Get them from: https://appstoreconnect.apple.com/access/api[/]");
+        AnsiConsole.MarkupLine("[dim]Get them from: https://appstoreconnect.apple.com/access/integrations/api[/]");
+        AnsiConsole.MarkupLine("[dim]Note: Only Account Holders and Admins can generate API keys.[/]");
+        AnsiConsole.MarkupLine("[dim]Required key access: Customer Support (minimum) or App Manager (recommended)[/]");
         AnsiConsole.WriteLine();
 
         var keyId = AnsiConsole.Ask<string>("[cyan]Key ID[/] (e.g., 2X9R4HXF34):");

@@ -45,6 +45,13 @@ arfetch
 2. Generate or select an API key
 3. Note: **Key ID**, **Issuer ID**, and download the **.p8 file**
 
+**Required Role:** Only **Account Holders** and **Admins** can generate API keys.
+
+**Required Key Access:** When creating the key, assign one of these access levels:
+- **Customer Support** (minimum) - Can view and respond to reviews
+- **App Manager** (recommended) - Full app management access
+- **Admin** - Complete access to all features
+
 ### 2. Configure Credentials
 
 Run `arfetch setup` or manually create:
