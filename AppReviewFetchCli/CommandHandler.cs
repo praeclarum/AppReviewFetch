@@ -161,7 +161,6 @@ public class CommandHandler
         // Guided setup
         AnsiConsole.MarkupLine("[dim]You'll need your App Store Connect API credentials.[/]");
         AnsiConsole.MarkupLine("[dim]Get them from: https://appstoreconnect.apple.com/access/integrations/api[/]");
-        AnsiConsole.MarkupLine("[dim]Note: Only Account Holders and Admins can generate API keys.[/]");
         AnsiConsole.MarkupLine("[dim]Required key access: Customer Support (minimum) or App Manager (recommended)[/]");
         AnsiConsole.WriteLine();
 
