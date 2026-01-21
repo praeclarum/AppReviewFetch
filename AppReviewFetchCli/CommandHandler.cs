@@ -292,7 +292,7 @@ public class CommandHandler
             var request = new ReviewRequest
             {
                 SortOrder = ReviewSortOrder.NewestFirst,
-                Limit = 20,
+                Limit = 50,
                 Country = country
             };
 
@@ -333,7 +333,7 @@ public class CommandHandler
                 // Ask for next page
                 if (response.Pagination.HasMorePages)
                 {
-                    if (!AnsiConsole.Confirm("[yellow]Fetch next page?[/]", false))
+                    if (!AnsiConsole.Confirm("[yellow]Fetch next page?[/]", true))
                     {
                         break;
                     }
