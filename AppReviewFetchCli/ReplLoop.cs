@@ -22,7 +22,7 @@ public class ReplLoop
         {
             // Display prompt
             var input = AnsiConsole.Prompt(
-                new TextPrompt<string>("[bold green]arfetch>[/] ")
+                new TextPrompt<string>("[bold magenta]arfetch>[/] ")
                     .AllowEmpty()
             );
 
