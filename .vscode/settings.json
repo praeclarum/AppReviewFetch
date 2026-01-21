@@ -4,6 +4,7 @@
         "dotnet build": true,
         "dotnet restore": true,
         "git checkout": true,
-        "dotnet run": true
+        "dotnet run": true,
+        "dotnet pack": true
     }
 }

@@ -6,18 +6,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
+    
     <!-- NuGet package metadata -->
     <PackageId>AppReviewFetch</PackageId>
     <Version>1.0.0</Version>
     <Authors>praeclarum</Authors>
-    <Description>.NET library for fetching app reviews from App Store Connect and other stores</Description>
-    <PackageTags>appstore;reviews;apple;googleplay;windows;cli;dotnet;library</PackageTags>
-    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
-    <PackageReadmeFile>../README.md</PackageReadmeFile>
+    <Company>praeclarum</Company>
+    <Product>AppReviewFetch</Product>
+    <Description>.NET library for fetching app reviews from App Store Connect and Google Play. Supports pagination, filtering, and developer response data.</Description>
+    <PackageTags>appstore;reviews;apple;googleplay;app-reviews;app-store-connect;api;dotnet;library</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/praeclarum/AppReviewFetch</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/praeclarum/AppReviewFetch</PackageProjectUrl>
+    <Copyright>Copyright © 2026 praeclarum</Copyright>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />

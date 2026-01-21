@@ -1,6 +1,6 @@
 # AppReviewFetch MCP Server
 
-A Model Context Protocol (MCP) server that provides AI assistants with access to App Store Connect review data. This enables AI tools like GitHub Copilot, Claude, and other MCP clients to analyze app reviews, monitor sentiment, and help with customer feedback management.
+A Model Context Protocol (MCP) server that provides AI assistants with access to App Store Connect and Google Play review data. This enables AI tools like GitHub Copilot, Claude, and other MCP clients to analyze app reviews, monitor sentiment, and help with customer feedback management.
 
 ## 🤖 What is MCP?
 
@@ -8,23 +8,32 @@ A Model Context Protocol (MCP) server that provides AI assistants with access to
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Installation
 
-1. **App Store Connect API Credentials** - See the [main README](../README.md#1-get-app-store-connect-api-key) for setup instructions
-2. **.NET 8.0 SDK** - [Download here](https://dotnet.microsoft.com/download)
-
-### Build the MCP Server
+Install as a global .NET tool:
 
 ```bash
-cd AppReviewFetchMcp
-dotnet build
+dotnet tool install -g AppReviewFetch.Mcp
+```
+
+### Prerequisites
+
+1. **App Store Connect API Credentials** - See the [main README](../README.md#setup) for setup instructions
+2. Configure credentials by running the CLI tool first:
+
+```bash
+# Install CLI if you haven't already
+dotnet tool install -g AppReviewFetch.Cli
+
+# Run setup
+arfetch setup
 ```
 
 ## 📦 Configuration
 
 ### VS Code with GitHub Copilot
 
-1. Create or edit `.vscode/mcp.json` in your workspace (or user settings):
+Create or edit `.vscode/mcp.json` in your workspace (or user settings):
 
 ```json
 {
@@ -32,24 +41,13 @@ dotnet build
   "servers": {
     "appreviewfetch": {
       "type": "stdio",
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/full/path/to/AppReviewFetch/AppReviewFetchMcp/AppReviewFetchMcp.csproj"
-      ]
+      "command": "arfetch-mcp"
     }
   }
 }
 ```
 
-**Note:** Replace `/full/path/to/` with the actual absolute path to your project.
-
-2. Ensure your credentials are configured (see [main README](../README.md#2-configure-credentials))
-
-3. Restart VS Code or reload the MCP servers
-
-4. In GitHub Copilot Chat, toggle **Agent mode** (@ icon) to see the AppReviewFetch tools
+Restart VS Code or reload the MCP servers, then toggle **Agent mode** (@ icon) in GitHub Copilot Chat to see the AppReviewFetch tools.
 
 ### Claude Desktop
 
@@ -62,12 +60,7 @@ Edit your Claude Desktop config file:
 {
   "mcpServers": {
     "appreviewfetch": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/full/path/to/AppReviewFetch/AppReviewFetchMcp/AppReviewFetchMcp.csproj"
-      ]
+      "command": "arfetch-mcp"
     }
   }
 }
@@ -75,18 +68,13 @@ Edit your Claude Desktop config file:
 
 ### Cline (VS Code Extension)
 
-If you're using Cline, add to your MCP settings:
+Add to your MCP settings:
 
 ```json
 {
   "mcpServers": {
     "appreviewfetch": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/full/path/to/AppReviewFetch/AppReviewFetchMcp/AppReviewFetchMcp.csproj"
-      ]
+      "command": "arfetch-mcp"
     }
   }
 }

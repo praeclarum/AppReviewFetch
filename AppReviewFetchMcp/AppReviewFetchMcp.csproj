@@ -7,12 +7,30 @@
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
     
-    <!-- Container support for deployment -->
-    <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
-    <ContainerRepository>appreviewfetch-mcp</ContainerRepository>
-    <ContainerFamily>alpine</ContainerFamily>
-    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <!-- .NET Tool Configuration -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>arfetch-mcp</ToolCommandName>
+    
+    <!-- NuGet package metadata -->
+    <PackageId>AppReviewFetch.Mcp</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>praeclarum</Authors>
+    <Company>praeclarum</Company>
+    <Product>AppReviewFetch MCP Server</Product>
+    <Description>Model Context Protocol (MCP) server for AppReviewFetch. Enables AI assistants like GitHub Copilot and Claude to access app review data from App Store Connect and Google Play. Install globally with: dotnet tool install -g AppReviewFetch.Mcp</Description>
+    <PackageTags>mcp;model-context-protocol;appstore;reviews;ai;copilot;claude;app-reviews;dotnet;tool;global-tool</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/praeclarum/AppReviewFetch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/praeclarum/AppReviewFetch</PackageProjectUrl>
+    <Copyright>Copyright © 2026 praeclarum</Copyright>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />

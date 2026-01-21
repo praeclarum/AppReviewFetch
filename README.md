@@ -1,50 +1,58 @@
 # AppReviewFetch
 
-A .NET library, CLI tool, and MCP service for fetching app reviews from App Store Connect (with future support for Google Play and Windows Store).
+A .NET library, CLI tool, and MCP server for fetching app reviews from App Store Connect and Google Play.
 
-## 🤖 MCP Server for AI Assistants
+## 📦 Installation
 
-Access your app reviews directly from GitHub Copilot, Claude, and other AI assistants using the MCP server.
+### CLI Tool (Recommended for most users)
 
-Make sure you establish your credentials using the CLI tool first.
-See [AppReviewFetchMcp/README.md](AppReviewFetchMcp/README.md) for detailed setup instructions.
+```bash
+dotnet tool install -g AppReviewFetch.Cli
+```
 
-**Quick setup for VS Code:**
-```json
-// .vscode/mcp.json
-{
-  "servers": {
-    "appreviewfetch": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": ["run", "--project", "${workspaceFolder}/AppReviewFetchMcp/AppReviewFetchMcp.csproj"]
-    }
-  }
-}
+Then run from anywhere:
+```bash
+arfetch
+```
+
+### MCP Server (For AI Assistants)
+
+Access your app reviews directly from GitHub Copilot, Claude, and other AI assistants:
+
+```bash
+dotnet tool install -g AppReviewFetch.Mcp
+```
+
+See [MCP Setup Guide](AppReviewFetchMcp/README.md) for configuration with VS Code, Claude Desktop, and other clients.
+
+### Library (For .NET Developers)
+
+```bash
+dotnet add package AppReviewFetch
+```
+
+Or add to your `.csproj`:
+```xml
+<PackageReference Include="AppReviewFetch" Version="1.0.0" />
 ```
 
 ## 🚀 Quick Start (CLI)
 
 ```bash
-# Build and run
-cd AppReviewFetchCli
-dotnet run
+# Install globally
+dotnet tool install -g AppReviewFetch.Cli
 
-# In the REPL
-arfetch> setup              # Configure credentials interactively
-arfetch> list               # List all your apps
-arfetch> fetch 123456789    # Fetch reviews
-```
-
-### Install as Global Tool
-
-```bash
-cd AppReviewFetchCli
-dotnet pack
-dotnet tool install --global --add-source ./bin/Debug AppReviewFetch.Cli
-
-# Run from anywhere
+# Run the interactive REPL
 arfetch
+
+# Configure credentials
+arfetch> setup
+
+# List your apps
+arfetch> list
+
+# Fetch reviews
+arfetch> fetch 123456789
 ```
 
 ### CLI Commands
@@ -125,6 +133,12 @@ Run `arfetch setup` or manually create:
 ```
 
 ## Library Usage
+
+Add the package to your project:
+
+```bash
+dotnet add package AppReviewFetch
+```
 
 ### Fetch Reviews
 
