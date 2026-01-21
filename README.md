@@ -1,6 +1,24 @@
 # AppReviewFetch
 
-A .NET library for fetching app reviews from various app stores, starting with Apple App Store Connect.
+A .NET library and CLI tool for fetching app reviews from various app stores, starting with Apple App Store Connect.
+
+## 🚀 Quick Start
+
+**Want to get started immediately?** Use the interactive CLI:
+
+```bash
+# Run the CLI
+cd AppReviewFetchCli
+dotnet run
+
+# In the REPL
+arfetch> setup      # Configure your credentials
+arfetch> status     # Verify everything works
+arfetch> fetch 123456789   # Fetch reviews
+arfetch> export     # Save to CSV
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed CLI instructions.
 
 ## Setup
 
@@ -16,8 +34,14 @@ A .NET library for fetching app reviews from various app stores, starting with A
 
 ### 2. Configure Credentials
 
-Create the credentials file at `~/.config/AppReviewFetch/Credentials.json`:
+Create the credentials file at the appropriate location for your OS:
 
+**Windows:**
+```
+%LOCALAPPDATA%\AppReviewFetch\Credentials.json
+```
+
+**macOS/Linux:**
 ```bash
 mkdir -p ~/.config/AppReviewFetch
 ```
@@ -42,6 +66,33 @@ You can find your App ID in App Store Connect or via the API:
 - Or use the [Apps API endpoint](https://developer.apple.com/documentation/appstoreconnectapi/list_apps) to list all your apps
 
 ## Usage
+
+## CLI Tool
+
+The easiest way to use AppReviewFetch is via the interactive CLI:
+
+```bash
+# Install as a global .NET tool
+cd AppReviewFetchCli
+dotnet pack
+dotnet tool install --global --add-source ./bin/Debug AppReviewFetch.Cli
+
+# Run the REPL
+arfetch
+
+# Set up credentials
+arfetch> setup
+
+# Fetch reviews
+arfetch> fetch 123456789
+
+# Export to CSV
+arfetch> export reviews.csv
+```
+
+See [AppReviewFetchCli/README.md](AppReviewFetchCli/README.md) for full CLI documentation.
+
+## Library Usage
 
 ### Basic Example
 

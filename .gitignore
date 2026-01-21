@@ -480,3 +480,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# AppReviewFetch - Never commit credentials!
+Credentials.json
+**/Credentials.json
+.config/AppReviewFetch/Credentials.json
+
+# AppReviewFetch - Exported review files
+reviews*.csv
+**/reviews*.csv

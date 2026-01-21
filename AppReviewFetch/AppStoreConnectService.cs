@@ -219,8 +219,14 @@ public class AppStoreConnectService : IAppReviewService
     {
         try
         {
-            var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var credentialsPath = Path.Combine(homeDir, ".config", "AppReviewFetch", "Credentials.json");
+            // Use platform-appropriate config directory
+            // Windows: %LOCALAPPDATA%\AppReviewFetch
+            // macOS/Linux: ~/.config/AppReviewFetch
+            var configDir = OperatingSystem.IsWindows()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+            
+            var credentialsPath = Path.Combine(configDir, "AppReviewFetch", "Credentials.json");
 
             if (!File.Exists(credentialsPath))
             {
