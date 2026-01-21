@@ -39,7 +39,8 @@ public static class AppReviewTools
                     bundleId = app.BundleId,
                     sku = app.Sku,
                     store = app.Store
-                }).ToList()
+                }).ToList(),
+                warnings = appsResponse.Warnings
             };
             
             return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });

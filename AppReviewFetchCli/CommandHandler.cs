@@ -678,7 +678,19 @@ public class CommandHandler
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine($"[green]Total: {response.Apps.Count} app(s)[/]");
-            AnsiConsole.MarkupLine("[dim]Use the App ID with 'fetch <appId>' to get reviews[/]");
+            
+            // Display any warnings from the services
+            if (response.Warnings.Count > 0)
+            {
+                AnsiConsole.WriteLine();
+                foreach (var warning in response.Warnings)
+                {
+                    AnsiConsole.MarkupLine($"[yellow]ℹ {Markup.Escape(warning)}[/]");
+                }
+            }
+            
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[dim]Use the App ID or package name with 'fetch <appId>' to get reviews[/]");
         }
         catch (CredentialsException ex)
         {

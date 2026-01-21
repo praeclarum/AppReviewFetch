@@ -96,13 +96,17 @@ public class GooglePlayService : IAppReviewService
         // Google Play API doesn't provide a list apps endpoint
         // The API requires knowing the package name upfront
         // We could potentially use the Google Play Console API or other methods,
-        // but for now we return an empty list
+        // but for now we return an empty list with a warning
         // 
         // Alternative: We could maintain a configuration file with known package names
         
         return await Task.FromResult(new AppListResponse
         {
-            Apps = new List<AppInfo>()
+            Apps = new List<AppInfo>(),
+            Warnings = new List<string>
+            {
+                "Google Play: The API does not support listing apps automatically. Use your app's package name (e.g., com.example.app) directly with the 'fetch' command."
+            }
         });
     }
 

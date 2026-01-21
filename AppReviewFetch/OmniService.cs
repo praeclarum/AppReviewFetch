@@ -125,14 +125,17 @@ public class OmniService : IAppReviewService
 
         // Combine results from all services
         var allApps = new List<AppInfo>();
+        var allWarnings = new List<string>();
         foreach (var result in results)
         {
             allApps.AddRange(result.Apps);
+            allWarnings.AddRange(result.Warnings);
         }
 
         return new AppListResponse
         {
-            Apps = allApps
+            Apps = allApps,
+            Warnings = allWarnings
         };
     }
 
@@ -151,9 +154,12 @@ public class OmniService : IAppReviewService
         }
         catch (Exception ex)
         {
-            // Log the error but continue - don't let one service failure break everything
-            Console.Error.WriteLine($"Warning: Failed to fetch apps from {storeName}: {ex.Message}");
-            return new AppListResponse { Apps = new List<AppInfo>() };
+            // Return error as warning - don't let one service failure break everything
+            return new AppListResponse 
+            { 
+                Apps = new List<AppInfo>(),
+                Warnings = new List<string> { $"{storeName}: Error - {ex.Message}" }
+            };
         }
     }
 

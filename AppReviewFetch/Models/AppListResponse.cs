@@ -9,6 +9,11 @@ public class AppListResponse
     /// The list of apps.
     /// </summary>
     public List<AppInfo> Apps { get; set; } = new();
+
+    /// <summary>
+    /// Warnings or informational messages from the services.
+    /// </summary>
+    public List<string> Warnings { get; set; } = new();
 }
 
 /// <summary>
