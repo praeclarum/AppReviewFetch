@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="AppReviewFetch/AppReviewFetch.csproj" />
   <Project Path="AppReviewFetchCli/AppReviewFetchCli.csproj" />
+  <Project Path="AppReviewFetchMcp/AppReviewFetchMcp.csproj" />
 </Solution>
