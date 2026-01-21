@@ -1,0 +1,14 @@
+{
+  "inputs": [],
+  "servers": {
+    "appreviewfetch": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/AppReviewFetchMcp/AppReviewFetchMcp.csproj"
+      ]
+    }
+  }
+}
