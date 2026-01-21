@@ -6,7 +6,8 @@ A .NET library, CLI tool, and MCP service for fetching app reviews from App Stor
 
 Access your app reviews directly from GitHub Copilot, Claude, and other AI assistants using the MCP server.
 
-See [AppReviewFetchMcp/README.md](AppReviewFetchMcp/README.md) for setup instructions.
+Make sure you establish your credentials using the CLI tool first.
+See [AppReviewFetchMcp/README.md](AppReviewFetchMcp/README.md) for detailed setup instructions.
 
 **Quick setup for VS Code:**
 ```json
