@@ -95,6 +95,18 @@ public class ReplLoop
                 await _commandHandler.ListAppsAsync();
                 break;
 
+            case "add-app":
+                await _commandHandler.AddAppAsync();
+                break;
+
+            case "edit-app":
+                await _commandHandler.EditAppAsync(arguments);
+                break;
+
+            case "delete-app":
+                await _commandHandler.DeleteAppAsync(arguments);
+                break;
+
             case "export":
             case "e":
                 _commandHandler.ExportToCSV(arguments);

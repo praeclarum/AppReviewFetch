@@ -16,6 +16,7 @@ public static class AppReviewTools
     /// Lists all apps accessible through App Store Connect and Google Play.
     /// Returns comprehensive app information including IDs, names, bundle IDs, and SKUs.
     /// Use this tool to discover available apps before fetching their reviews.
+    /// By default, hidden apps are excluded from the list.
     /// </summary>
     /// <param name="reviewService">The app review service instance (injected).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -29,16 +30,21 @@ public static class AppReviewTools
         {
             var appsResponse = await reviewService.GetAppsAsync(cancellationToken);
             
+            // Filter out hidden apps
+            var visibleApps = appsResponse.Apps.Where(a => !a.IsHidden).ToList();
+            
             var result = new
             {
-                totalApps = appsResponse.Apps.Count,
-                apps = appsResponse.Apps.Select(app => new
+                totalApps = visibleApps.Count,
+                hiddenApps = appsResponse.Apps.Count - visibleApps.Count,
+                apps = visibleApps.Select(app => new
                 {
                     id = app.Id,
                     name = app.Name,
                     bundleId = app.BundleId,
                     sku = app.Sku,
-                    store = app.Store
+                    store = app.Store,
+                    projectUrl = app.ProjectUrl
                 }).ToList(),
                 warnings = appsResponse.Warnings
             };
@@ -60,9 +66,10 @@ public static class AppReviewTools
     /// Fetches reviews for a specific app with pagination, filtering, and sorting support.
     /// Returns detailed review information including ratings, text, developer responses, and metadata.
     /// Pagination is handled via cursor-based navigation for efficient data retrieval.
+    /// The app identifier can be an app ID, bundle/package ID, or app name from the database.
     /// </summary>
     /// <param name="reviewService">The app review service instance (injected).</param>
-    /// <param name="appId">The unique app identifier. For App Store: numeric ID; for Google Play: package name (e.g., com.example.app).</param>
+    /// <param name="appId">The app identifier - can be app ID, bundle/package ID (e.g., com.example.app), or app name. The service will resolve it automatically.</param>
     /// <param name="sortOrder">Sort order: "NewestFirst" (default), "OldestFirst", "HighestRatingFirst", "LowestRatingFirst", or "MostHelpful".</param>
     /// <param name="country">Optional ISO 3166-1 alpha-2 country/territory code (e.g., "US", "GB", "JP") to filter reviews by region.</param>
     /// <param name="limit">Number of reviews per page (default: 50, max: 200 for App Store, 100 for Google Play). Consider using smaller values for initial exploration.</param>
@@ -72,7 +79,7 @@ public static class AppReviewTools
     [McpServerTool, Description("Fetch reviews for a specific app from App Store Connect or Google Play. Supports pagination (use cursor from previous response), filtering by country (ISO 3166-1 alpha-2 code like 'US'), and various sort orders. Returns reviews with ratings, text, developer responses, dates, and reviewer info. Use smaller page limits (20-50) for quick previews, larger limits (100-200) for comprehensive analysis.")]
     public static async Task<string> FetchReviews(
         IAppReviewService reviewService,
-        [Description("The app identifier (use ListApps to find this). For App Store: numeric ID; for Google Play: package name")] string appId,
+        [Description("The app identifier: app ID, bundle/package ID (e.g., com.example.app), or app name. Use ListApps to discover apps.")] string appId,
         [Description("Sort order: NewestFirst, OldestFirst, HighestRatingFirst, LowestRatingFirst, MostHelpful")] string? sortOrder = "NewestFirst",
         [Description("ISO 3166-1 alpha-2 country code (e.g., US, GB, JP) to filter reviews by territory")] string? country = null,
         [Description("Number of reviews per page (1-200, default: 50)")] int limit = 50,

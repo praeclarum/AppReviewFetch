@@ -3,6 +3,7 @@
         "dotnet add": true,
         "dotnet build": true,
         "dotnet restore": true,
-        "git checkout": true
+        "git checkout": true,
+        "dotnet run": true
     }
 }

@@ -65,4 +65,22 @@ public class AppInfo
     /// The app's current version in the store.
     /// </summary>
     public string? CurrentVersion { get; set; }
+
+    // Metadata fields (not provided by APIs, managed locally)
+    
+    /// <summary>
+    /// URL to the project's source code repository (e.g., GitHub, GitLab).
+    /// </summary>
+    public string? ProjectUrl { get; set; }
+
+    /// <summary>
+    /// Whether this app should be hidden from list commands.
+    /// Useful for apps removed from stores or deprecated apps.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
+    /// Additional notes or metadata about the app.
+    /// </summary>
+    public string? Notes { get; set; }
 }

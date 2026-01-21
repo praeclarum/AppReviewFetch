@@ -39,7 +39,10 @@ public class CommandHandler
         table.AddRow("status", "s", "Show credentials and authentication status");
         table.AddRow("setup", "", "Interactive wizard to configure credentials");
         table.AddRow("list", "l", "List all apps accessible with current credentials");
-        table.AddRow("fetch [[appId]]", "f [[appId]]", "Fetch reviews for an app (supports pagination)");
+        table.AddRow("add-app", "", "Add an app to the database manually");
+        table.AddRow("edit-app [[query]]", "", "Edit app metadata (supports app ID, bundle ID, or name)");
+        table.AddRow("delete-app [[query]]", "", "Delete an app from the database (supports app ID, bundle ID, or name)");
+        table.AddRow("fetch [[query]]", "f [[query]]", "Fetch reviews (supports app ID, bundle ID, or name)");
         table.AddRow("export [[file]]", "e [[file]]", "Export all fetched reviews to CSV");
         table.AddRow("clear", "cls", "Clear the screen");
         table.AddRow("exit", "quit, q", "Exit the application");
@@ -48,7 +51,9 @@ public class CommandHandler
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Examples:[/]");
         AnsiConsole.MarkupLine("  [cyan]list[/] - List all your apps");
-        AnsiConsole.MarkupLine("  [cyan]fetch 123456789[/] - Fetch reviews for app 123456789");
+        AnsiConsole.MarkupLine("  [cyan]fetch 123456789[/] - Fetch reviews by app ID");
+        AnsiConsole.MarkupLine("  [cyan]fetch com.example.app[/] - Fetch reviews by bundle/package ID");
+        AnsiConsole.MarkupLine("  [cyan]fetch \"My App Name\"[/] - Fetch reviews by app name");
         AnsiConsole.MarkupLine("  [cyan]f 123456789 US[/] - Fetch US reviews only");
         AnsiConsole.MarkupLine("  [cyan]export reviews.csv[/] - Export to specific file");
     }
@@ -416,12 +421,16 @@ public class CommandHandler
     {
         if (arguments.Length == 0)
         {
-            AnsiConsole.MarkupLine("[red]Error:[/] App ID required");
-            AnsiConsole.MarkupLine("[dim]Usage: fetch <appId> [country][/]");
+            AnsiConsole.MarkupLine("[red]Error:[/] App identifier required");
+            AnsiConsole.MarkupLine("[dim]Usage: fetch <appId|bundleId|appName> [country][/]");
+            AnsiConsole.MarkupLine("[dim]Examples:[/]");
+            AnsiConsole.MarkupLine("[dim]  fetch 123456789[/]");
+            AnsiConsole.MarkupLine("[dim]  fetch com.example.app[/]");
+            AnsiConsole.MarkupLine("[dim]  fetch \"My App Name\"[/]");
             return;
         }
 
-        var appId = arguments[0];
+        var appQuery = arguments[0];
         var country = arguments.Length > 1 ? arguments[1] : null;
 
         try
@@ -443,7 +452,7 @@ public class CommandHandler
                 response = await AnsiConsole.Status()
                     .StartAsync($"Fetching reviews (page {pageNumber})...", async ctx =>
                     {
-                        return await service.GetReviewsAsync(appId, request);
+                        return await service.GetReviewsAsync(appQuery, request);
                     });
 
                 if (response.Reviews.Count == 0)
@@ -499,6 +508,10 @@ public class CommandHandler
         {
             AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
             AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+        catch (AppReviewFetchException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }
     }
 
@@ -640,14 +653,21 @@ public class CommandHandler
                     return await service.GetAppsAsync();
                 });
 
-            if (response.Apps.Count == 0)
+            // Filter out hidden apps
+            var visibleApps = response.Apps.Where(a => !a.IsHidden).ToList();
+
+            if (visibleApps.Count == 0)
             {
                 AnsiConsole.MarkupLine("[yellow]No apps found[/]");
+                if (response.Apps.Count > visibleApps.Count)
+                {
+                    AnsiConsole.MarkupLine($"[dim]({response.Apps.Count - visibleApps.Count} hidden app(s) not shown)[/]");
+                }
                 return;
             }
 
             // Sort apps by name
-            var sortedApps = response.Apps.OrderBy(a => a.Name).ToList();
+            var sortedApps = visibleApps.OrderBy(a => a.Name).ToList();
 
             // Display apps in a table
             var table = new Table()
@@ -677,7 +697,12 @@ public class CommandHandler
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[green]Total: {response.Apps.Count} app(s)[/]");
+            AnsiConsole.MarkupLine($"[green]Total: {visibleApps.Count} app(s)[/]");
+            
+            if (response.Apps.Count > visibleApps.Count)
+            {
+                AnsiConsole.MarkupLine($"[dim]({response.Apps.Count - visibleApps.Count} hidden app(s) not shown)[/]");
+            }
             
             // Display any warnings from the services
             if (response.Warnings.Count > 0)
@@ -701,6 +726,260 @@ public class CommandHandler
         {
             AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
             AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+    }
+
+    public async Task AddAppAsync()
+    {
+        try
+        {
+            AnsiConsole.Write(new Rule("[bold cyan]Add App Manually[/]") { Justification = Justify.Left });
+            AnsiConsole.WriteLine();
+
+            // Get store
+            var store = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("[cyan]Select store:[/]")
+                    .AddChoices(new[] { "App Store", "Google Play" }));
+
+            // Get app details
+            var name = AnsiConsole.Ask<string>("[cyan]App name:[/]");
+            var bundleId = AnsiConsole.Ask<string>($"[cyan]{(store == "App Store" ? "Bundle ID" : "Package name")}:[/]");
+            
+            // Create app info
+            var app = new AppInfo
+            {
+                Id = bundleId,
+                Name = name,
+                BundleId = bundleId,
+                Store = store,
+                Platforms = new List<string>()
+            };
+
+            // Optional fields
+            if (AnsiConsole.Confirm("[yellow]Add project URL?[/]", false))
+            {
+                app.ProjectUrl = AnsiConsole.Ask<string>("[cyan]Project URL:[/]");
+            }
+
+            if (AnsiConsole.Confirm("[yellow]Add notes?[/]", false))
+            {
+                app.Notes = AnsiConsole.Ask<string>("[cyan]Notes:[/]");
+            }
+
+            app.IsHidden = AnsiConsole.Confirm("[yellow]Hide this app from listings?[/]", false);
+
+            // Save to database
+            var service = new OmniService();
+            var database = service.GetAppDatabase();
+            await database.LoadAsync();
+            database.AddOrUpdateApp(app);
+            await database.SaveAsync();
+
+            AnsiConsole.MarkupLine($"[green]✓ App '{Markup.Escape(name)}' added successfully![/]");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+    }
+
+    public async Task EditAppAsync(string[] arguments)
+    {
+        try
+        {
+            AnsiConsole.Write(new Rule("[bold cyan]Edit App Metadata[/]") { Justification = Justify.Left });
+            AnsiConsole.WriteLine();
+
+            // Load database
+            var service = new OmniService();
+            var database = service.GetAppDatabase();
+            await database.LoadAsync();
+
+            var allApps = database.GetAllApps(includeHidden: true);
+            if (allApps.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No apps in database. Use 'list' or 'add-app' first.[/]");
+                return;
+            }
+
+            AppInfo app;
+
+            // If argument provided, try to resolve it
+            if (arguments.Length > 0)
+            {
+                var query = string.Join(" ", arguments);
+                var resolved = database.ResolveApp(query, includeHidden: true);
+                
+                if (resolved == null)
+                {
+                    AnsiConsole.MarkupLine($"[red]App not found:[/] {Markup.Escape(query)}");
+                    AnsiConsole.MarkupLine("[yellow]Use 'list' to see available apps or run 'edit-app' without arguments to select interactively.[/]");
+                    return;
+                }
+                
+                app = resolved;
+                AnsiConsole.MarkupLine($"[green]Found:[/] {Markup.Escape(app.Name)} ({app.Store})");
+                AnsiConsole.WriteLine();
+            }
+            else
+            {
+                // Interactive selection
+                var appChoices = allApps
+                    .Select(a => $"{a.Name} ({a.BundleId ?? a.Id}) - {a.Store}")
+                    .ToList();
+
+                var selectedChoice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("[cyan]Select app to edit:[/]")
+                        .PageSize(10)
+                        .AddChoices(appChoices));
+
+                var selectedIndex = appChoices.IndexOf(selectedChoice);
+                app = allApps[selectedIndex];
+            }
+
+            // Edit fields
+            var editOptions = new List<string> 
+            { 
+                "Project URL",
+                "Notes", 
+                "Hide/Unhide App",
+                "Done"
+            };
+
+            while (true)
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[bold]Editing: {Markup.Escape(app.Name)}[/]");
+                AnsiConsole.MarkupLine($"[dim]Store: {app.Store}[/]");
+                AnsiConsole.MarkupLine($"[dim]Bundle ID: {app.BundleId ?? app.Id}[/]");
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"Project URL: [cyan]{app.ProjectUrl ?? "[dim]not set[/]"}[/]");
+                AnsiConsole.MarkupLine($"Notes: [cyan]{app.Notes ?? "[dim]not set[/]"}[/]");
+                AnsiConsole.MarkupLine($"Hidden: [cyan]{(app.IsHidden ? "Yes" : "No")}[/]");
+                AnsiConsole.WriteLine();
+
+                var choice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("[cyan]What would you like to edit?[/]")
+                        .AddChoices(editOptions));
+
+                if (choice == "Done")
+                {
+                    break;
+                }
+
+                switch (choice)
+                {
+                    case "Project URL":
+                        var newUrl = AnsiConsole.Ask<string>(
+                            "[cyan]Project URL (leave empty to clear):[/]",
+                            app.ProjectUrl ?? string.Empty);
+                        app.ProjectUrl = string.IsNullOrWhiteSpace(newUrl) ? null : newUrl;
+                        break;
+
+                    case "Notes":
+                        var newNotes = AnsiConsole.Ask<string>(
+                            "[cyan]Notes (leave empty to clear):[/]",
+                            app.Notes ?? string.Empty);
+                        app.Notes = string.IsNullOrWhiteSpace(newNotes) ? null : newNotes;
+                        break;
+
+                    case "Hide/Unhide App":
+                        app.IsHidden = !app.IsHidden;
+                        AnsiConsole.MarkupLine($"[green]App is now {(app.IsHidden ? "hidden" : "visible")}[/]");
+                        break;
+                }
+            }
+
+            // Save changes
+            database.AddOrUpdateApp(app);
+            await database.SaveAsync();
+
+            AnsiConsole.MarkupLine($"[green]✓ Changes saved successfully![/]");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+    }
+
+    public async Task DeleteAppAsync(string[] arguments)
+    {
+        try
+        {
+            AnsiConsole.Write(new Rule("[bold cyan]Delete App[/]") { Justification = Justify.Left });
+            AnsiConsole.WriteLine();
+
+            // Load database
+            var service = new OmniService();
+            var database = service.GetAppDatabase();
+            await database.LoadAsync();
+
+            var allApps = database.GetAllApps(includeHidden: true);
+            if (allApps.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No apps in database.[/]");
+                return;
+            }
+
+            AppInfo app;
+
+            // If argument provided, try to resolve it
+            if (arguments.Length > 0)
+            {
+                var query = string.Join(" ", arguments);
+                var resolved = database.ResolveApp(query, includeHidden: true);
+                
+                if (resolved == null)
+                {
+                    AnsiConsole.MarkupLine($"[red]App not found:[/] {Markup.Escape(query)}");
+                    AnsiConsole.MarkupLine("[yellow]Use 'list' to see available apps or run 'delete-app' without arguments to select interactively.[/]");
+                    return;
+                }
+                
+                app = resolved;
+                AnsiConsole.MarkupLine($"[green]Found:[/] {Markup.Escape(app.Name)} ({app.Store})");
+                AnsiConsole.WriteLine();
+            }
+            else
+            {
+                // Interactive selection
+                var appChoices = allApps
+                    .Select(a => $"{a.Name} ({a.BundleId ?? a.Id}) - {a.Store}")
+                    .ToList();
+
+                var selectedChoice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("[cyan]Select app to delete:[/]")
+                        .PageSize(10)
+                        .AddChoices(appChoices));
+
+                var selectedIndex = appChoices.IndexOf(selectedChoice);
+                app = allApps[selectedIndex];
+            }
+
+            // Confirm deletion
+            var confirmed = AnsiConsole.Confirm(
+                $"[red]Are you sure you want to delete '{Markup.Escape(app.Name)}'?[/]",
+                false);
+
+            if (!confirmed)
+            {
+                AnsiConsole.MarkupLine("[yellow]Deletion cancelled.[/]");
+                return;
+            }
+
+            // Delete app
+            database.DeleteApp(app.Store, app.BundleId ?? app.Id);
+            await database.SaveAsync();
+
+            AnsiConsole.MarkupLine($"[green]✓ App '{Markup.Escape(app.Name)}' deleted successfully![/]");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }
     }
 }

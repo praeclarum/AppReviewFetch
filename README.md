@@ -53,10 +53,41 @@ arfetch
 |---------|---------|-------------|
 | `setup` | | Configure App Store Connect credentials |
 | `status` | `s` | Check credentials & auth |
-| `list` | `l` | List all apps |
-| `fetch <appId> [country]` | `f` | Fetch reviews (paginated) |
+| `list` | `l` | List all apps (excludes hidden) |
+| `add-app` | | Manually add an app to database |
+| `edit-app [query]` | | Edit app metadata (ProjectUrl, IsHidden, Notes) |
+| `delete-app [query]` | | Remove an app from database |
+| `fetch <query> [country]` | `f` | Fetch reviews (supports app ID, bundle ID, or name) |
 | `export [file]` | `e` | Export to CSV |
 | `help` | `h`, `?` | Show all commands |
+
+**Query Support:** Most commands accept flexible queries that can match:
+- **App ID** (e.g., `123456789`)
+- **Bundle/Package ID** (e.g., `com.example.app`)
+- **App Name** (case-insensitive, partial match)
+
+Examples:
+```bash
+fetch 123456789              # By app ID
+fetch com.example.app        # By bundle ID
+fetch "My App Name"          # By name
+edit-app Calca               # Edit by name
+delete-app com.old.app       # Delete by bundle ID
+```
+
+### App Database
+
+AppReviewFetch maintains a local database of apps at:
+- **Windows:** `%LOCALAPPDATA%\AppReviewFetch\Apps.json`
+- **macOS/Linux:** `~/.config/AppReviewFetch/Apps.json`
+
+This database:
+- **Caches apps** from API calls (App Store, Google Play)
+- **Stores metadata** like project URLs and notes
+- **Supports manual entries** for stores that can't list apps (e.g., Google Play)
+- **Hides removed apps** to keep listings clean
+
+Use `add-app` to manually add apps, `edit-app` to set project URLs or hide apps, and `delete-app` to remove entries.
 
 ## Setup
 
