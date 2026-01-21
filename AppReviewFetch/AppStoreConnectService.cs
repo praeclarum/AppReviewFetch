@@ -87,9 +87,6 @@ public class AppStoreConnectService : IAppReviewService
     {
         var queryParams = new List<string>();
 
-        // Filter by app
-        queryParams.Add($"filter[app]={Uri.EscapeDataString(appId)}");
-
         // Include developer responses
         queryParams.Add("include=response");
 
@@ -130,7 +127,7 @@ public class AppStoreConnectService : IAppReviewService
         }
 
         var query = string.Join("&", queryParams);
-        return $"{BaseUrl}/{ApiVersion}/customerReviews?{query}";
+        return $"{BaseUrl}/{ApiVersion}/apps/{appId}/customerReviews?{query}";
     }
 
     /// <summary>
@@ -151,7 +148,7 @@ public class AppStoreConnectService : IAppReviewService
             var expiration = now.AddMinutes(TokenExpirationMinutes);
 
             // Load private key
-            using var ecdsa = LoadPrivateKey(_credentials.PrivateKey);
+            var ecdsa = LoadPrivateKey(_credentials.PrivateKey);
 
             var signingCredentials = new SigningCredentials(
                 new ECDsaSecurityKey(ecdsa),

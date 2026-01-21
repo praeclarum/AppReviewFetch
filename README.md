@@ -48,9 +48,12 @@ arfetch
 **Required Role:** Only **Account Holders** and **Admins** can generate API keys.
 
 **Required Key Access:** When creating the key, assign one of these access levels:
-- **Customer Support** (minimum) - Can view and respond to reviews
-- **App Manager** (recommended) - Full app management access
+- **App Manager** - Full app management access (recommended)
+- **Customer Support** - Can view and respond to reviews
+- **Sales** - Can view reviews and analytics
 - **Admin** - Complete access to all features
+
+**Note:** Developer, Marketing, and Finance roles do NOT have access to customer reviews.
 
 ### 2. Configure Credentials
 

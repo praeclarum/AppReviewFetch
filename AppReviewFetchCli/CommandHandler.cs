@@ -157,7 +157,7 @@ public class CommandHandler
         // Guided setup
         AnsiConsole.MarkupLine("[dim]You'll need your App Store Connect API credentials.[/]");
         AnsiConsole.MarkupLine("[dim]Get them from: https://appstoreconnect.apple.com/access/integrations/api[/]");
-        AnsiConsole.MarkupLine("[dim]Required key access: Customer Support (minimum) or App Manager (recommended)[/]");
+        AnsiConsole.MarkupLine("[dim]Required key access: App Manager, Customer Support, Sales, or Admin[/]");
         AnsiConsole.WriteLine();
 
         var keyId = AnsiConsole.Ask<string>("[cyan]Key ID[/] (e.g., 2X9R4HXF34):");
@@ -508,6 +508,9 @@ public class CommandHandler
                 return;
             }
 
+            // Sort apps by name
+            var sortedApps = response.Apps.OrderBy(a => a.Name).ToList();
+
             // Display apps in a table
             var table = new Table()
                 .Border(TableBorder.Rounded)
@@ -519,7 +522,7 @@ public class CommandHandler
             table.AddColumn(new TableColumn("[bold cyan]Platform(s)[/]").LeftAligned());
             table.AddColumn(new TableColumn("[bold cyan]Store[/]").LeftAligned());
 
-            foreach (var app in response.Apps)
+            foreach (var app in sortedApps)
             {
                 var platforms = app.Platforms.Count > 0 
                     ? string.Join(", ", app.Platforms) 
