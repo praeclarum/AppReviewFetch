@@ -387,7 +387,7 @@ public class GooglePlayService : IAppReviewService
                 review.DeveloperResponse = new ReviewResponse
                 {
                     Id = $"{reviewData.ReviewId}_response",
-                    Body = developerComment.Text,
+                    Body = developerComment.Text ?? string.Empty,
                     CreatedDate = developerComment.LastModified?.ToDateTimeOffset() ?? DateTimeOffset.UtcNow,
                     ModifiedDate = developerComment.LastModified?.ToDateTimeOffset()
                 };
