@@ -15,7 +15,7 @@ builder.Logging.AddConsole(consoleLogOptions =>
 
 // Register services
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<IAppReviewService, AppStoreConnectService>();
+builder.Services.AddSingleton<IAppReviewService, OmniService>();
 
 // Configure MCP server
 builder.Services

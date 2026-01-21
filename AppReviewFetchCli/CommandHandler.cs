@@ -87,40 +87,47 @@ public class CommandHandler
             var json = await File.ReadAllTextAsync(_credentialsPath);
             var rootCredentials = JsonSerializer.Deserialize<Credentials>(json);
 
+            // App Store Connect
             if (rootCredentials?.AppStoreConnect != null)
             {
                 var credentials = rootCredentials.AppStoreConnect;
-                content.AppendLine("[bold]Credentials:[/]");
+                content.AppendLine("[bold]App Store Connect:[/]");
                 content.AppendLine($"  Key ID: [cyan]{MaskString(credentials.KeyId)}[/]");
                 content.AppendLine($"  Issuer ID: [cyan]{MaskString(credentials.IssuerId)}[/]");
                 content.AppendLine($"  Private Key: {(string.IsNullOrWhiteSpace(credentials.PrivateKey) ? "[red]✗ Missing[/]" : "[green]✓ Present[/]")}");
-
-
                 content.AppendLine();
-
-                // Test authentication
-                content.Append("[bold]Authentication:[/] ");
-                
-                await AnsiConsole.Status()
-                    .StartAsync("Testing...", async ctx =>
-                    {
-                        try
-                        {
-                            var service = new AppStoreConnectService();
-                            // The service will validate credentials when created
-                            content.Append("[green]✓ Valid[/]");
-                        }
-                        catch (Exception ex)
-                        {
-                            content.Append($"[red]✗ Failed[/]");
-                            content.AppendLine();
-                            content.Append($"[dim]{ex.Message}[/]");
-                        }
-                    });
             }
-            else
+
+            // Google Play
+            if (rootCredentials?.GooglePlay != null)
             {
-                content.AppendLine("[red]✗ Failed to parse credentials file[/]");
+                var credentials = rootCredentials.GooglePlay;
+                content.AppendLine("[bold]Google Play:[/]");
+                content.AppendLine($"  Service Account: {(string.IsNullOrWhiteSpace(credentials.ServiceAccountJson) ? "[red]✗ Missing[/]" : "[green]✓ Present[/]")}");
+                
+                // Try to extract client email from JSON for display
+                try
+                {
+                    var doc = JsonDocument.Parse(credentials.ServiceAccountJson);
+                    if (doc.RootElement.TryGetProperty("client_email", out var emailElement))
+                    {
+                        content.AppendLine($"  Email: [cyan]{emailElement.GetString()}[/]");
+                    }
+                }
+                catch
+                {
+                    // Ignore parsing errors
+                }
+                
+                content.AppendLine();
+            }
+
+            if (rootCredentials?.AppStoreConnect == null && rootCredentials?.GooglePlay == null)
+            {
+                content.AppendLine("[yellow]⚠ No credentials configured[/]");
+                content.AppendLine();
+                content.AppendLine("[yellow]Run 'setup' to create credentials[/]");
+                return content.ToString();
             }
         }
         catch (Exception ex)
@@ -144,19 +151,49 @@ public class CommandHandler
         AnsiConsole.Write(new Rule("[bold cyan]Credentials Setup[/]") { Justification = Justify.Left });
         AnsiConsole.WriteLine();
 
-        // Check if credentials already exist
+        // Load existing credentials if they exist
+        Credentials credentials;
         if (File.Exists(_credentialsPath))
         {
-            if (!AnsiConsole.Confirm("[yellow]Credentials already exist. Overwrite?[/]", false))
+            try
             {
-                AnsiConsole.MarkupLine("[yellow]Setup cancelled[/]");
-                return;
+                var json = await File.ReadAllTextAsync(_credentialsPath);
+                credentials = JsonSerializer.Deserialize<Credentials>(json) ?? new Credentials();
+            }
+            catch
+            {
+                credentials = new Credentials();
             }
         }
+        else
+        {
+            credentials = new Credentials();
+        }
 
-        // Guided setup
-        AnsiConsole.MarkupLine("[dim]You'll need your App Store Connect API credentials.[/]");
-        AnsiConsole.MarkupLine("[dim]Get them from: https://appstoreconnect.apple.com/access/integrations/api[/]");
+        // Ask which store to configure
+        var store = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("[cyan]Which store would you like to configure?[/]")
+                .AddChoices(new[] { "App Store Connect", "Google Play", "Both" }));
+
+        if (store == "App Store Connect" || store == "Both")
+        {
+            await SetupAppStoreCredentialsAsync(credentials);
+        }
+
+        if (store == "Google Play" || store == "Both")
+        {
+            await SetupGooglePlayCredentialsAsync(credentials);
+        }
+
+        // Save credentials
+        await SaveCredentialsAsync(credentials);
+    }
+
+    private async Task SetupAppStoreCredentialsAsync(Credentials credentials)
+    {
+        AnsiConsole.MarkupLine("[bold yellow]App Store Connect Setup[/]");
+        AnsiConsole.MarkupLine("[dim]Get credentials from: https://appstoreconnect.apple.com/access/integrations/api[/]");
         AnsiConsole.MarkupLine("[dim]Required key access: App Manager, Customer Support, Sales, or Admin[/]");
         AnsiConsole.WriteLine();
 
@@ -181,17 +218,88 @@ public class CommandHandler
 
         var privateKey = string.Join("\n", privateKeyLines);
 
-        // Create credentials object
-        var credentials = new Credentials
+        credentials.AppStoreConnect = new AppStoreConnectCredentials
         {
-            AppStoreConnect = new AppStoreConnectCredentials
-            {
-                KeyId = keyId,
-                IssuerId = issuerId,
-                PrivateKey = privateKey
-            }
+            KeyId = keyId,
+            IssuerId = issuerId,
+            PrivateKey = privateKey
         };
 
+        AnsiConsole.MarkupLine("[green]✓ App Store Connect credentials configured[/]");
+        AnsiConsole.WriteLine();
+    }
+
+    private async Task SetupGooglePlayCredentialsAsync(Credentials credentials)
+    {
+        AnsiConsole.MarkupLine("[bold yellow]Google Play Setup[/]");
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.MarkupLine("[bold cyan]Step 1: Create Service Account (Google Cloud Console)[/]");
+        AnsiConsole.MarkupLine("[dim]1. Go to: https://console.cloud.google.com/iam-admin/serviceaccounts[/]");
+        AnsiConsole.MarkupLine("[dim]2. Select/create a project (any name)[/]");
+        AnsiConsole.MarkupLine("[dim]3. Click 'CREATE SERVICE ACCOUNT'[/]");
+        AnsiConsole.MarkupLine("[dim]4. Enter a name (e.g., 'app-reviews')[/]");
+        AnsiConsole.MarkupLine("[dim]5. SKIP the 'Permissions' step (click CONTINUE)[/]");
+        AnsiConsole.MarkupLine("[dim]6. SKIP the 'Principals with access' step (click DONE)[/]");
+        AnsiConsole.MarkupLine("[dim]7. Click on the service account → KEYS tab → ADD KEY → Create new key[/]");
+        AnsiConsole.MarkupLine("[dim]8. Choose JSON format and download the file[/]");
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.MarkupLine("[bold cyan]Step 2: Enable Google Play API[/]");
+        AnsiConsole.MarkupLine("[dim]1. Go to: https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com[/]");
+        AnsiConsole.MarkupLine("[dim]2. Click ENABLE[/]");
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.MarkupLine("[bold cyan]Step 3: Grant Access in Play Console (IMPORTANT!)[/]");
+        AnsiConsole.MarkupLine("[dim]1. Go to: https://play.google.com/console/[/]");
+        AnsiConsole.MarkupLine("[dim]2. Select 'Users and permissions' (left sidebar)[/]");
+        AnsiConsole.MarkupLine("[dim]3. Click 'Invite new users'[/]");
+        AnsiConsole.MarkupLine("[dim]4. Enter the service account email (from the JSON: client_email)[/]");
+        AnsiConsole.MarkupLine("[dim]5. Under 'App permissions', select your app(s)[/]");
+        AnsiConsole.MarkupLine("[dim]6. Check 'View app information' and 'Reply to reviews'[/]");
+        AnsiConsole.MarkupLine("[dim]7. Click 'Invite user'[/]");
+        AnsiConsole.WriteLine();
+
+        AnsiConsole.MarkupLine("[cyan]Service Account JSON[/] (paste entire JSON content, press Enter twice when done):");
+        var jsonLines = new List<string>();
+        
+        while (true)
+        {
+            var line = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(line) && jsonLines.Count > 0)
+            {
+                break;
+            }
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                jsonLines.Add(line);
+            }
+        }
+
+        var serviceAccountJson = string.Join("\n", jsonLines);
+
+        // Validate it's valid JSON
+        try
+        {
+            JsonDocument.Parse(serviceAccountJson);
+        }
+        catch
+        {
+            AnsiConsole.MarkupLine("[red]✗ Invalid JSON format[/]");
+            return;
+        }
+
+        credentials.GooglePlay = new GooglePlayCredentials
+        {
+            ServiceAccountJson = serviceAccountJson
+        };
+
+        AnsiConsole.MarkupLine("[green]✓ Google Play credentials configured[/]");
+        AnsiConsole.WriteLine();
+    }
+
+    private async Task SaveCredentialsAsync(Credentials credentials)
+    {
         // Save to file
         await AnsiConsole.Status()
             .StartAsync("Saving credentials...", async ctx =>
@@ -246,14 +354,44 @@ public class CommandHandler
         await AnsiConsole.Status()
             .StartAsync("Testing credentials...", async ctx =>
             {
+                var hasAnyValid = false;
+
+                // Test App Store Connect
                 try
                 {
                     var service = new AppStoreConnectService();
-                    AnsiConsole.MarkupLine("[green]✓ Credentials are valid![/]");
+                    await service.GetAppsAsync();
+                    AnsiConsole.MarkupLine("[green]✓ App Store Connect credentials are valid![/]");
+                    hasAnyValid = true;
+                }
+                catch (CredentialsException)
+                {
+                    // Credentials not configured, skip
                 }
                 catch (Exception ex)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗ Credentials test failed: {ex.Message}[/]");
+                    AnsiConsole.MarkupLine($"[red]✗ App Store Connect test failed: {ex.Message}[/]");
+                }
+
+                // Test Google Play
+                try
+                {
+                    var service = new GooglePlayService();
+                    AnsiConsole.MarkupLine("[green]✓ Google Play credentials are valid![/]");
+                    hasAnyValid = true;
+                }
+                catch (CredentialsException)
+                {
+                    // Credentials not configured, skip
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]✗ Google Play test failed: {ex.Message}[/]");
+                }
+
+                if (!hasAnyValid)
+                {
+                    AnsiConsole.MarkupLine("[yellow]⚠ No valid credentials configured[/]");
                 }
             });
     }
@@ -288,7 +426,7 @@ public class CommandHandler
 
         try
         {
-            var service = new AppStoreConnectService();
+            var service = new OmniService();
             var request = new ReviewRequest
             {
                 SortOrder = ReviewSortOrder.NewestFirst,
@@ -493,7 +631,7 @@ public class CommandHandler
     {
         try
         {
-            var service = new AppStoreConnectService();
+            var service = new OmniService();
             
             // Fetch apps with progress indicator
             var response = await AnsiConsole.Status()

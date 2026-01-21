@@ -13,10 +13,13 @@ public class Credentials
     [JsonPropertyName("appStoreConnect")]
     public AppStoreConnectCredentials? AppStoreConnect { get; set; }
 
-    // Future properties:
-    // [JsonPropertyName("googlePlay")]
-    // public GooglePlayCredentials? GooglePlay { get; set; }
+    /// <summary>
+    /// Credentials for Google Play Developer API.
+    /// </summary>
+    [JsonPropertyName("googlePlay")]
+    public GooglePlayCredentials? GooglePlay { get; set; }
     
+    // Future properties:
     // [JsonPropertyName("windowsStore")]
     // public WindowsStoreCredentials? WindowsStore { get; set; }
 }

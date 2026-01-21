@@ -13,14 +13,14 @@ namespace AppReviewFetchMcp;
 public static class AppReviewTools
 {
     /// <summary>
-    /// Lists all apps accessible through App Store Connect.
+    /// Lists all apps accessible through App Store Connect and Google Play.
     /// Returns comprehensive app information including IDs, names, bundle IDs, and SKUs.
     /// Use this tool to discover available apps before fetching their reviews.
     /// </summary>
     /// <param name="reviewService">The app review service instance (injected).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>JSON array containing app details with id, name, bundleId, and sku for each app.</returns>
-    [McpServerTool, Description("List all accessible apps from App Store Connect. Returns app ID, name, bundle ID, and SKU for each app. Use this to find the app ID needed for fetching reviews.")]
+    /// <returns>JSON array containing app details with id, name, bundleId, store, and sku for each app.</returns>
+    [McpServerTool, Description("List all accessible apps from App Store Connect and Google Play. Returns app ID, name, bundle ID, store, and SKU for each app. Use this to find the app ID needed for fetching reviews.")]
     public static async Task<string> ListApps(
         IAppReviewService reviewService,
         CancellationToken cancellationToken = default)
@@ -37,7 +37,8 @@ public static class AppReviewTools
                     id = app.Id,
                     name = app.Name,
                     bundleId = app.BundleId,
-                    sku = app.Sku
+                    sku = app.Sku,
+                    store = app.Store
                 }).ToList()
             };
             
@@ -60,17 +61,17 @@ public static class AppReviewTools
     /// Pagination is handled via cursor-based navigation for efficient data retrieval.
     /// </summary>
     /// <param name="reviewService">The app review service instance (injected).</param>
-    /// <param name="appId">The unique App Store Connect app ID (obtain from ListApps tool).</param>
+    /// <param name="appId">The unique app identifier. For App Store: numeric ID; for Google Play: package name (e.g., com.example.app).</param>
     /// <param name="sortOrder">Sort order: "NewestFirst" (default), "OldestFirst", "HighestRatingFirst", "LowestRatingFirst", or "MostHelpful".</param>
     /// <param name="country">Optional ISO 3166-1 alpha-2 country/territory code (e.g., "US", "GB", "JP") to filter reviews by region.</param>
-    /// <param name="limit">Number of reviews per page (default: 50, max: 200). Consider using smaller values for initial exploration.</param>
+    /// <param name="limit">Number of reviews per page (default: 50, max: 200 for App Store, 100 for Google Play). Consider using smaller values for initial exploration.</param>
     /// <param name="cursor">Pagination cursor from a previous response's nextCursor field. Leave empty for first page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>JSON object with reviews array, pagination info (nextCursor, hasMorePages), and summary statistics (totalReviews, averageRating).</returns>
-    [McpServerTool, Description("Fetch reviews for a specific app from App Store Connect. Supports pagination (use cursor from previous response), filtering by country (ISO 3166-1 alpha-2 code like 'US'), and various sort orders. Returns reviews with ratings, text, developer responses, dates, and reviewer info. Use smaller page limits (20-50) for quick previews, larger limits (100-200) for comprehensive analysis.")]
+    [McpServerTool, Description("Fetch reviews for a specific app from App Store Connect or Google Play. Supports pagination (use cursor from previous response), filtering by country (ISO 3166-1 alpha-2 code like 'US'), and various sort orders. Returns reviews with ratings, text, developer responses, dates, and reviewer info. Use smaller page limits (20-50) for quick previews, larger limits (100-200) for comprehensive analysis.")]
     public static async Task<string> FetchReviews(
         IAppReviewService reviewService,
-        [Description("The App Store Connect app ID (use ListApps to find this)")] string appId,
+        [Description("The app identifier (use ListApps to find this). For App Store: numeric ID; for Google Play: package name")] string appId,
         [Description("Sort order: NewestFirst, OldestFirst, HighestRatingFirst, LowestRatingFirst, MostHelpful")] string? sortOrder = "NewestFirst",
         [Description("ISO 3166-1 alpha-2 country code (e.g., US, GB, JP) to filter reviews by territory")] string? country = null,
         [Description("Number of reviews per page (1-200, default: 50)")] int limit = 50,

@@ -2,6 +2,7 @@
     "chat.tools.terminal.autoApprove": {
         "dotnet add": true,
         "dotnet build": true,
-        "dotnet restore": true
+        "dotnet restore": true,
+        "git checkout": true
     }
 }
