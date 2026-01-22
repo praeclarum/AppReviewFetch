@@ -81,7 +81,7 @@ public class GooglePlayService : IAppReviewService
             throw new AppReviewFetchException("Failed to deserialize API response");
         }
 
-        return TransformResponse(apiResponse);
+        return TransformResponse(apiResponse, appId);
     }
 
     /// <summary>
@@ -348,7 +348,7 @@ public class GooglePlayService : IAppReviewService
     /// <summary>
     /// Transforms the Google Play API response into our standard format.
     /// </summary>
-    private ReviewPageResponse TransformResponse(ReviewsResponse apiResponse)
+    private ReviewPageResponse TransformResponse(ReviewsResponse apiResponse, string packageName)
     {
         var reviews = new List<AppReview>();
 
@@ -372,7 +372,8 @@ public class GooglePlayService : IAppReviewService
 
             var review = new AppReview
             {
-                Id = reviewData.ReviewId,
+                // Store ID in format "packageName:reviewId" so we can respond to it later
+                Id = $"{packageName}:{reviewData.ReviewId}",
                 Rating = userComment.StarRating,
                 Title = null, // Google Play reviews don't have titles
                 Body = userComment.Text,
@@ -386,7 +387,7 @@ public class GooglePlayService : IAppReviewService
             {
                 review.DeveloperResponse = new ReviewResponse
                 {
-                    Id = $"{reviewData.ReviewId}_response",
+                    Id = $"{packageName}:{reviewData.ReviewId}_response",
                     Body = developerComment.Text ?? string.Empty,
                     CreatedDate = developerComment.LastModified?.ToDateTimeOffset() ?? DateTimeOffset.UtcNow,
                     ModifiedDate = developerComment.LastModified?.ToDateTimeOffset()
@@ -445,6 +446,116 @@ public class GooglePlayService : IAppReviewService
             (int)response.StatusCode,
             $"Request failed with status {response.StatusCode}: {content}"
         );
+    }
+
+    /// <summary>
+    /// Responds to a customer review. Creates a new response or updates an existing one.
+    /// Documentation: https://developers.google.com/android-publisher/api-ref/rest/v3/reviews/reply
+    /// </summary>
+    public async Task<ReviewResponse> RespondToReviewAsync(
+        string reviewId,
+        string responseText,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(reviewId))
+        {
+            throw new ArgumentException("Review ID cannot be null or empty", nameof(reviewId));
+        }
+
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            throw new ArgumentException("Response text cannot be null or empty", nameof(responseText));
+        }
+
+        // Extract package name from review ID if it's in the format "packageName:reviewId"
+        // Otherwise, we need to infer it - Google Play reviews need the package name
+        // For now, we'll throw an exception if the format is not as expected
+        var parts = reviewId.Split(':', 2);
+        if (parts.Length != 2)
+        {
+            throw new ArgumentException(
+                "Review ID must be in the format 'packageName:reviewId' for Google Play",
+                nameof(reviewId));
+        }
+
+        var packageName = parts[0];
+        var actualReviewId = parts[1];
+
+        // Build the request body
+        var requestBody = new
+        {
+            replyText = responseText
+        };
+
+        var url = $"{BaseUrl}/applications/{packageName}/reviews/{actualReviewId}:reply";
+
+        // Get or refresh access token
+        var token = await GetOrRefreshTokenAsync(cancellationToken);
+
+        // Create HTTP request
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+        httpRequest.Headers.Add("Authorization", $"Bearer {token}");
+        httpRequest.Headers.Add("Accept", "application/json");
+
+        var jsonBody = JsonSerializer.Serialize(requestBody);
+        httpRequest.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+        // Execute request
+        var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        // Handle response
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            await ThrowApiErrorAsync(response, content);
+        }
+
+        // Parse the response
+        var apiResponse = JsonDocument.Parse(content);
+        var resultElement = apiResponse.RootElement.GetProperty("result");
+        
+        var replyText = resultElement.GetProperty("replyText").GetString() ?? string.Empty;
+        var lastEdited = resultElement.TryGetProperty("lastEdited", out var editedElement)
+            ? ParseGoogleTimestamp(editedElement)
+            : DateTimeOffset.UtcNow;
+
+        return new ReviewResponse
+        {
+            Id = reviewId, // Use the combined format
+            Body = replyText,
+            CreatedDate = lastEdited,
+            ModifiedDate = lastEdited,
+            State = "PUBLISHED"
+        };
+    }
+
+    /// <summary>
+    /// Deletes a developer response to a review.
+    /// Google Play API does not support deleting review responses.
+    /// This method will throw a NotSupportedException.
+    /// </summary>
+    public Task DeleteReviewResponseAsync(
+        string responseId,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "Google Play API does not support deleting review responses. " +
+            "You can only update existing responses by calling RespondToReviewAsync with new text.");
+    }
+
+    /// <summary>
+    /// Parses a Google Timestamp object to DateTimeOffset.
+    /// </summary>
+    private DateTimeOffset ParseGoogleTimestamp(JsonElement timestampElement)
+    {
+        if (timestampElement.TryGetProperty("seconds", out var secondsElement))
+        {
+            var seconds = secondsElement.GetInt64();
+            return DateTimeOffset.FromUnixTimeSeconds(seconds);
+        }
+
+        return DateTimeOffset.UtcNow;
     }
 
     /// <summary>

@@ -107,6 +107,15 @@ public class ReplLoop
                 await _commandHandler.DeleteAppAsync(arguments);
                 break;
 
+            case "respond":
+            case "r":
+                await _commandHandler.RespondToReviewAsync(arguments);
+                break;
+
+            case "delete-response":
+                await _commandHandler.DeleteReviewResponseAsync(arguments);
+                break;
+
             case "export":
             case "e":
                 _commandHandler.ExportToCSV(arguments);

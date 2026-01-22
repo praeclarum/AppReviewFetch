@@ -20,4 +20,20 @@ public interface IAppReviewService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A list of apps with their metadata.</returns>
     Task<AppListResponse> GetAppsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Responds to a customer review. Creates a new response or updates an existing one.
+    /// </summary>
+    /// <param name="reviewId">The unique identifier of the review to respond to.</param>
+    /// <param name="responseText">The text of the response.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The created or updated review response.</returns>
+    Task<ReviewResponse> RespondToReviewAsync(string reviewId, string responseText, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a developer response to a review.
+    /// </summary>
+    /// <param name="responseId">The unique identifier of the response to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task DeleteReviewResponseAsync(string responseId, CancellationToken cancellationToken = default);
 }

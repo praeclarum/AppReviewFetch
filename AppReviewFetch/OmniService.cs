@@ -257,4 +257,79 @@ public class OmniService : IAppReviewService
     /// Gets the app database for direct access (e.g., for CLI commands).
     /// </summary>
     public AppDatabase GetAppDatabase() => _appDatabase;
+
+    /// <summary>
+    /// Responds to a customer review. Creates a new response or updates an existing one.
+    /// Routes to the appropriate service based on the review ID format.
+    /// </summary>
+    public async Task<ReviewResponse> RespondToReviewAsync(
+        string reviewId,
+        string responseText,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(reviewId))
+        {
+            throw new ArgumentException("Review ID cannot be null or empty", nameof(reviewId));
+        }
+
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            throw new ArgumentException("Response text cannot be null or empty", nameof(responseText));
+        }
+
+        // Determine which service to use based on review ID format
+        // Google Play uses "packageName:reviewId" format
+        // App Store uses just a numeric ID
+        if (reviewId.Contains(':') && _hasGooglePlay)
+        {
+            // Google Play format
+            return await _googlePlayService!.RespondToReviewAsync(reviewId, responseText, cancellationToken);
+        }
+        else if (_hasAppStore)
+        {
+            // App Store format
+            return await _appStoreService!.RespondToReviewAsync(reviewId, responseText, cancellationToken);
+        }
+        else
+        {
+            throw new AppReviewFetchException(
+                "Unable to determine the appropriate service for this review ID, " +
+                "or no credentials are configured for the detected service.");
+        }
+    }
+
+    /// <summary>
+    /// Deletes a developer response to a review.
+    /// Routes to the appropriate service based on the response ID format.
+    /// Note: Google Play does not support deleting responses.
+    /// </summary>
+    public async Task DeleteReviewResponseAsync(
+        string responseId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(responseId))
+        {
+            throw new ArgumentException("Response ID cannot be null or empty", nameof(responseId));
+        }
+
+        // Determine which service to use based on response ID format
+        // Google Play uses "packageName:reviewId_response" format
+        // App Store uses just a UUID
+        if (responseId.Contains(':') && _hasGooglePlay)
+        {
+            // Google Play - will throw NotSupportedException
+            await _googlePlayService!.DeleteReviewResponseAsync(responseId, cancellationToken);
+        }
+        else if (_hasAppStore)
+        {
+            // App Store
+            await _appStoreService!.DeleteReviewResponseAsync(responseId, cancellationToken);
+        }
+        else
+        {
+            throw new AppReviewFetchException(
+                "Unable to determine the appropriate service for this response ID, " +
+                "or no credentials are configured for the detected service.");
+        }
+    }
 }

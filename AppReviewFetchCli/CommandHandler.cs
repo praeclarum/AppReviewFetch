@@ -43,6 +43,8 @@ public class CommandHandler
         table.AddRow("edit-app [[query]]", "", "Edit app metadata (supports app ID, bundle ID, or name)");
         table.AddRow("delete-app [[query]]", "", "Delete an app from the database (supports app ID, bundle ID, or name)");
         table.AddRow("fetch [[query]]", "f [[query]]", "Fetch reviews (supports app ID, bundle ID, or name)");
+        table.AddRow("respond [[reviewId]]", "r [[reviewId]]", "Respond to a review");
+        table.AddRow("delete-response [[responseId]]", "", "Delete a response to a review");
         table.AddRow("export [[file]]", "e [[file]]", "Export all fetched reviews to CSV");
         table.AddRow("clear", "cls", "Clear the screen");
         table.AddRow("exit", "quit, q", "Exit the application");
@@ -536,6 +538,7 @@ public class CommandHandler
         content.AppendLine($"[{ratingColor} bold]{stars}[/] ({review.Rating}/5)");
 
         // Metadata
+        content.AppendLine($"[dim]ID: {review.Id}[/]");
         content.AppendLine($"[dim]{review.CreatedDate:yyyy-MM-dd HH:mm} • {review.Territory ?? "Unknown"} • {review.ReviewerNickname ?? "Anonymous"}[/]");
         content.AppendLine();
 
@@ -976,6 +979,154 @@ public class CommandHandler
             await database.SaveAsync();
 
             AnsiConsole.MarkupLine($"[green]✓ App '{Markup.Escape(app.Name)}' deleted successfully![/]");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+    }
+
+    public async Task RespondToReviewAsync(string[] arguments)
+    {
+        if (arguments.Length == 0)
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] Review ID required");
+            AnsiConsole.MarkupLine("[dim]Usage: respond <reviewId>[/]");
+            AnsiConsole.MarkupLine("[dim]Example: respond 1234567890[/]");
+            AnsiConsole.MarkupLine("[dim]Review IDs are displayed when you fetch reviews.[/]");
+            return;
+        }
+
+        var reviewId = arguments[0];
+
+        try
+        {
+            var rule = new Rule($"[bold cyan]Respond to Review {reviewId}[/]")
+            {
+                Justification = Justify.Left
+            };
+            AnsiConsole.Write(rule);
+            AnsiConsole.WriteLine();
+
+            // Get response text from user
+            var responseText = AnsiConsole.Prompt(
+                new TextPrompt<string>("[cyan]Enter your response:[/]")
+                    .Validate(text =>
+                    {
+                        if (string.IsNullOrWhiteSpace(text))
+                            return ValidationResult.Error("[red]Response cannot be empty[/]");
+                        if (text.Length > 350)
+                            return ValidationResult.Error($"[red]Response too long ({text.Length}/350 characters)[/]");
+                        return ValidationResult.Success();
+                    }));
+
+            // Show preview
+            AnsiConsole.WriteLine();
+            var preview = new Panel(Markup.Escape(responseText))
+                .Header("[yellow]Preview[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderColor(Color.Yellow);
+            AnsiConsole.Write(preview);
+            AnsiConsole.WriteLine();
+
+            // Confirm
+            if (!AnsiConsole.Confirm("[yellow]Send this response?[/]", true))
+            {
+                AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
+                return;
+            }
+
+            // Send response
+            var service = new OmniService();
+            ReviewResponse? response = null;
+            await AnsiConsole.Status()
+                .StartAsync("Sending response...", async ctx =>
+                {
+                    response = await service.RespondToReviewAsync(reviewId, responseText);
+                });
+
+            AnsiConsole.MarkupLine("[green]✓ Response sent successfully![/]");
+            if (response != null)
+            {
+                AnsiConsole.MarkupLine($"[dim]Response ID: {response.Id}[/]");
+            }
+        }
+        catch (CredentialsException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Credentials Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine("[yellow]Run 'setup' to configure credentials[/]");
+        }
+        catch (ApiErrorException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+        catch (AppReviewFetchException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+    }
+
+    public async Task DeleteReviewResponseAsync(string[] arguments)
+    {
+        if (arguments.Length == 0)
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] Response ID required");
+            AnsiConsole.MarkupLine("[dim]Usage: delete-response <responseId>[/]");
+            AnsiConsole.MarkupLine("[dim]Example: delete-response abc-123-def[/]");
+            AnsiConsole.MarkupLine("[dim]Response IDs are shown when you respond to reviews.[/]");
+            return;
+        }
+
+        var responseId = arguments[0];
+
+        try
+        {
+            var rule = new Rule($"[bold cyan]Delete Response {responseId}[/]")
+            {
+                Justification = Justify.Left
+            };
+            AnsiConsole.Write(rule);
+            AnsiConsole.WriteLine();
+
+            // Confirm deletion
+            if (!AnsiConsole.Confirm("[red]Are you sure you want to delete this response?[/]", false))
+            {
+                AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
+                return;
+            }
+
+            // Delete response
+            var service = new OmniService();
+            await AnsiConsole.Status()
+                .StartAsync("Deleting response...", async ctx =>
+                {
+                    await service.DeleteReviewResponseAsync(responseId);
+                });
+
+            AnsiConsole.MarkupLine("[green]✓ Response deleted successfully![/]");
+        }
+        catch (NotSupportedException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Not Supported:[/] {ex.Message}");
+        }
+        catch (CredentialsException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Credentials Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine("[yellow]Run 'setup' to configure credentials[/]");
+        }
+        catch (ApiErrorException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+        catch (AppReviewFetchException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }
         catch (Exception ex)
         {

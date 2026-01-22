@@ -152,6 +152,7 @@ public static class AppReviewTools
                     hasDeveloperResponse = review.DeveloperResponse != null,
                     developerResponse = review.DeveloperResponse != null ? new
                     {
+                        id = review.DeveloperResponse.Id,
                         body = review.DeveloperResponse.Body,
                         modifiedDate = review.DeveloperResponse.ModifiedDate?.ToString("yyyy-MM-dd HH:mm:ss")
                     } : null
@@ -178,4 +179,106 @@ public static class AppReviewTools
             }, new JsonSerializerOptions { WriteIndented = true });
         }
     }
+
+    /// <summary>
+    /// Responds to a customer review by creating or updating a developer response.
+    /// Use the review ID from FetchReviews to identify which review to respond to.
+    /// The response will be published to the app store after a brief delay.
+    /// </summary>
+    /// <param name="reviewService">The app review service instance (injected).</param>
+    /// <param name="reviewId">The unique identifier of the review to respond to (from FetchReviews).</param>
+    /// <param name="responseText">The text of your response. Keep it concise and professional. Maximum ~350 characters for Google Play.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>JSON object with the created/updated response details including response ID, body, and timestamps.</returns>
+    [McpServerTool, Description("Respond to a customer review. Creates a new response or updates an existing one. Use the review ID from FetchReviews. Response text should be professional and concise (max ~350 chars for Google Play). Returns the response details including ID for future reference.")]
+    public static async Task<string> RespondToReview(
+        IAppReviewService reviewService,
+        [Description("The review ID from FetchReviews output")] string reviewId,
+        [Description("Your response text - keep it professional and concise")] string responseText,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await reviewService.RespondToReviewAsync(reviewId, responseText, cancellationToken);
+
+            var result = new
+            {
+                success = true,
+                response = new
+                {
+                    id = response.Id,
+                    body = response.Body,
+                    createdDate = response.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss"),
+                    modifiedDate = response.ModifiedDate?.ToString("yyyy-MM-dd HH:mm:ss"),
+                    state = response.State
+                },
+                message = "Response submitted successfully. It may take a few moments to appear in the app store."
+            };
+
+            return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                error = true,
+                message = ex.Message,
+                type = ex.GetType().Name,
+                reviewId,
+                responseText
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a developer response to a review.
+    /// Note: Google Play does not support deleting responses - only App Store supports this.
+    /// Use the response ID from the review's developerResponse.id field.
+    /// </summary>
+    /// <param name="reviewService">The app review service instance (injected).</param>
+    /// <param name="responseId">The unique identifier of the response to delete (from review's developerResponse.id).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>JSON object confirming deletion or describing any errors.</returns>
+    [McpServerTool, Description("Delete a developer response to a review. Only supported for App Store (not Google Play). Use the response ID from the review's developerResponse.id field in FetchReviews output.")]
+    public static async Task<string> DeleteReviewResponse(
+        IAppReviewService reviewService,
+        [Description("The response ID from review's developerResponse.id")] string responseId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await reviewService.DeleteReviewResponseAsync(responseId, cancellationToken);
+
+            var result = new
+            {
+                success = true,
+                message = "Response deleted successfully.",
+                responseId
+            };
+
+            return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (NotSupportedException ex)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                error = true,
+                notSupported = true,
+                message = ex.Message,
+                type = ex.GetType().Name,
+                responseId
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                error = true,
+                message = ex.Message,
+                type = ex.GetType().Name,
+                responseId
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+    }
 }
+

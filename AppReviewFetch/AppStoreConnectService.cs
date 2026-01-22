@@ -505,4 +505,124 @@ public class AppStoreConnectService : IAppReviewService
             _ => apiPlatform
         };
     }
+
+    /// <summary>
+    /// Responds to a customer review. Creates a new response or updates an existing one.
+    /// Documentation: https://developer.apple.com/documentation/appstoreconnectapi/post-v1-customerreviewresponses
+    /// </summary>
+    public async Task<ReviewResponse> RespondToReviewAsync(
+        string reviewId,
+        string responseText,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(reviewId))
+        {
+            throw new ArgumentException("Review ID cannot be null or empty", nameof(reviewId));
+        }
+
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            throw new ArgumentException("Response text cannot be null or empty", nameof(responseText));
+        }
+
+        // Build the request body
+        var requestBody = new CustomerReviewResponseCreateRequest
+        {
+            Data = new CustomerReviewResponseData
+            {
+                Type = "customerReviewResponses",
+                Attributes = new CustomerReviewResponseRequestAttributes
+                {
+                    ResponseBody = responseText
+                },
+                Relationships = new CustomerReviewResponseRelationships
+                {
+                    Review = new ReviewRelationship
+                    {
+                        Data = new ReviewRelationshipData
+                        {
+                            Type = "customerReviews",
+                            Id = reviewId
+                        }
+                    }
+                }
+            }
+        };
+
+        var url = $"{BaseUrl}/{ApiVersion}/customerReviewResponses";
+
+        // Get or refresh JWT token
+        var token = GetOrRefreshToken();
+
+        // Create HTTP request
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+        httpRequest.Headers.Add("Authorization", $"Bearer {token}");
+        httpRequest.Headers.Add("Accept", "application/json");
+
+        var jsonBody = JsonSerializer.Serialize(requestBody);
+        httpRequest.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+        // Execute request
+        var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        // Handle response
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            await ThrowApiErrorAsync(response, content);
+        }
+
+        // Parse and transform response
+        var apiResponse = JsonSerializer.Deserialize<CustomerReviewResponseCreateResponse>(content);
+        if (apiResponse == null)
+        {
+            throw new AppReviewFetchException("Failed to deserialize API response");
+        }
+
+        return new ReviewResponse
+        {
+            Id = apiResponse.Data.Id,
+            Body = apiResponse.Data.Attributes.ResponseBody,
+            CreatedDate = apiResponse.Data.Attributes.LastModifiedDate ?? DateTimeOffset.UtcNow,
+            ModifiedDate = apiResponse.Data.Attributes.LastModifiedDate,
+            State = apiResponse.Data.Attributes.State
+        };
+    }
+
+    /// <summary>
+    /// Deletes a developer response to a review.
+    /// Documentation: https://developer.apple.com/documentation/appstoreconnectapi/delete-v1-customerreviewresponses-_id_
+    /// </summary>
+    public async Task DeleteReviewResponseAsync(
+        string responseId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(responseId))
+        {
+            throw new ArgumentException("Response ID cannot be null or empty", nameof(responseId));
+        }
+
+        var url = $"{BaseUrl}/{ApiVersion}/customerReviewResponses/{responseId}";
+
+        // Get or refresh JWT token
+        var token = GetOrRefreshToken();
+
+        // Create HTTP request
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Delete, url);
+        httpRequest.Headers.Add("Authorization", $"Bearer {token}");
+        httpRequest.Headers.Add("Accept", "application/json");
+
+        // Execute request
+        var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        // Handle response
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            await ThrowApiErrorAsync(response, content);
+        }
+
+        // 204 No Content is the expected success response
+    }
 }
