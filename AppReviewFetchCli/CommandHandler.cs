@@ -43,6 +43,7 @@ public class CommandHandler
         table.AddRow("edit-app [[query]]", "", "Edit app metadata (supports app ID, bundle ID, or name)");
         table.AddRow("delete-app [[query]]", "", "Delete an app from the database (supports app ID, bundle ID, or name)");
         table.AddRow("fetch [[query]]", "f [[query]]", "Fetch reviews (supports app ID, bundle ID, or name)");
+        table.AddRow("unanswered [[query]]", "u [[query]]", "Fetch reviews without responses (supports app ID, bundle ID, or name)");
         table.AddRow("respond [[reviewId]]", "r [[reviewId]]", "Respond to a review");
         table.AddRow("delete-response [[responseId]]", "", "Delete a response to a review");
         table.AddRow("export [[file]]", "e [[file]]", "Export all fetched reviews to CSV");
@@ -57,6 +58,7 @@ public class CommandHandler
         AnsiConsole.MarkupLine("  [cyan]fetch com.example.app[/] - Fetch reviews by bundle/package ID");
         AnsiConsole.MarkupLine("  [cyan]fetch \"My App Name\"[/] - Fetch reviews by app name");
         AnsiConsole.MarkupLine("  [cyan]f 123456789 US[/] - Fetch US reviews only");
+        AnsiConsole.MarkupLine("  [cyan]unanswered 123456789[/] - Fetch unanswered reviews by app ID");
         AnsiConsole.MarkupLine("  [cyan]export reviews.csv[/] - Export to specific file");
     }
 
@@ -1129,6 +1131,120 @@ public class CommandHandler
             AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }
         catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+        }
+    }
+
+    public async Task FetchUnansweredReviewsAsync(string[] arguments)
+    {
+        if (arguments.Length == 0)
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] App identifier required");
+            AnsiConsole.MarkupLine("[dim]Usage: unanswered <appId|bundleId|appName> [country][/]");
+            AnsiConsole.MarkupLine("[dim]Examples:[/]");
+            AnsiConsole.MarkupLine("[dim]  unanswered 123456789[/]");
+            AnsiConsole.MarkupLine("[dim]  unanswered com.example.app[/]");
+            AnsiConsole.MarkupLine("[dim]  unanswered \"My App Name\"[/]");
+            return;
+        }
+
+        var appQuery = arguments[0];
+        var country = arguments.Length > 1 ? arguments[1] : null;
+
+        try
+        {
+            var service = new OmniService();
+            var request = new ReviewRequest
+            {
+                SortOrder = ReviewSortOrder.NewestFirst,
+                Limit = 50,
+                Country = country
+            };
+
+            var unansweredReviews = new List<AppReview>();
+            ReviewPageResponse? response = null;
+            var pageNumber = 1;
+            var totalReviewsChecked = 0;
+
+            do
+            {
+                // Fetch reviews with progress indicator
+                response = await AnsiConsole.Status()
+                    .StartAsync($"Fetching reviews (page {pageNumber})...", async ctx =>
+                    {
+                        return await service.GetReviewsAsync(appQuery, request);
+                    });
+
+                if (response.Reviews.Count == 0)
+                {
+                    break;
+                }
+
+                totalReviewsChecked += response.Reviews.Count;
+
+                // Filter reviews without responses
+                var reviewsWithoutResponse = response.Reviews
+                    .Where(r => r.DeveloperResponse == null)
+                    .ToList();
+
+                unansweredReviews.AddRange(reviewsWithoutResponse);
+
+                // Show progress
+                AnsiConsole.MarkupLine($"[dim]Page {pageNumber}: Found {reviewsWithoutResponse.Count} unanswered out of {response.Reviews.Count} reviews[/]");
+
+                // Automatically fetch more pages to gather more unanswered reviews
+                if (response.Pagination.HasMorePages)
+                {
+                    request.Cursor = response.Pagination.NextCursor;
+                    pageNumber++;
+                }
+                else
+                {
+                    break;
+                }
+
+            } while (response?.Pagination.HasMorePages == true);
+
+            // Display results
+            AnsiConsole.WriteLine();
+            if (unansweredReviews.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[green]✓ All reviews have been answered![/]");
+                AnsiConsole.MarkupLine($"[dim]Checked {totalReviewsChecked} total reviews[/]");
+            }
+            else
+            {
+                var rule = new Rule($"[bold yellow]{unansweredReviews.Count} Unanswered Review(s)[/]")
+                {
+                    Justification = Justify.Left
+                };
+                AnsiConsole.Write(rule);
+
+                foreach (var review in unansweredReviews)
+                {
+                    DisplayReview(review);
+                }
+
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[yellow]Total unanswered:[/] [bold]{unansweredReviews.Count}[/] out of [dim]{totalReviewsChecked}[/] reviews");
+                AnsiConsole.MarkupLine("[dim]Use 'respond <reviewId>' to reply to a review[/]");
+
+                // Add to global collection for export
+                _allFetchedReviews.AddRange(unansweredReviews);
+            }
+        }
+        catch (CredentialsException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Credentials Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine("[yellow]Run 'setup' to configure credentials[/]");
+        }
+        catch (ApiErrorException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
+            AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+        catch (AppReviewFetchException ex)
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }

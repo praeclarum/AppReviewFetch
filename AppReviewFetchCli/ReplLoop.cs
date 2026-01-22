@@ -90,6 +90,11 @@ public class ReplLoop
                 await _commandHandler.FetchReviewsAsync(arguments);
                 break;
 
+            case "unanswered":
+            case "u":
+                await _commandHandler.FetchUnansweredReviewsAsync(arguments);
+                break;
+
             case "list":
             case "l":
                 await _commandHandler.ListAppsAsync();
