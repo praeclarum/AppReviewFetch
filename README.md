@@ -1,5 +1,7 @@
 # AppReviewFetch
 
+[![Build](https://github.com/praeclarum/AppReviewFetch/actions/workflows/build.yml/badge.svg)](https://github.com/praeclarum/AppReviewFetch/actions/workflows/build.yml) ![NuGet Library](https://img.shields.io/nuget/v/AppReviewFetch) ![NuGet CLI](https://img.shields.io/nuget/v/AppReviewFetch.Cli?label=CLI) ![NuGet MCP Server](https://img.shields.io/nuget/v/AppReviewFetch.Mcp?label=MCP)
+
 A .NET library, CLI tool, and MCP server for fetching app reviews from App Store Connect (with Google Play support in development).
 
 ## 📦 Installation
@@ -55,18 +57,13 @@ arfetch> list
 arfetch> fetch 123456789
 ```
 
-### CLI Commands
+### Main CLI Commands
 
 | Command | Aliases | Description |
 |---------|---------|-------------|
 | `setup` | | Configure App Store Connect credentials |
-| `status` | `s` | Check credentials & auth |
 | `list` | `l` | List all apps (excludes hidden) |
-| `add-app` | | Manually add an app to database |
-| `edit-app [query]` | | Edit app metadata (ProjectUrl, IsHidden, Notes) |
-| `delete-app [query]` | | Remove an app from database |
 | `fetch <query> [country]` | `f` | Fetch reviews (supports app ID, bundle ID, or name) |
-| `export [file]` | `e` | Export to CSV |
 | `help` | `h`, `?` | Show all commands |
 
 **Query Support:** Most commands accept flexible queries that can match:
@@ -79,8 +76,6 @@ Examples:
 fetch 123456789              # By app ID
 fetch com.example.app        # By bundle ID
 fetch "My App Name"          # By name
-edit-app Calca               # Edit by name
-delete-app com.old.app       # Delete by bundle ID
 ```
 
 ### App Database
