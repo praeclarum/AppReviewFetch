@@ -90,11 +90,13 @@ public class OmniService : IAppReviewService
             
             if (store.Equals("App Store", StringComparison.OrdinalIgnoreCase) && _hasAppStore)
             {
-                return await _appStoreService!.GetReviewsAsync(apiIdentifier, request, cancellationToken);
+                var response = await _appStoreService!.GetReviewsAsync(apiIdentifier, request, cancellationToken);
+                return AddPrefixes(response, "as");
             }
             else if (store.Equals("Google Play", StringComparison.OrdinalIgnoreCase) && _hasGooglePlay)
             {
-                return await _googlePlayService!.GetReviewsAsync(apiIdentifier, request, cancellationToken);
+                var response = await _googlePlayService!.GetReviewsAsync(apiIdentifier, request, cancellationToken);
+                return AddPrefixes(response, "gp");
             }
             else
             {
@@ -109,21 +111,25 @@ public class OmniService : IAppReviewService
 
         if (isNumeric && _hasAppStore)
         {
-            return await _appStoreService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            var response = await _appStoreService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            return AddPrefixes(response, "as");
         }
         else if (isPackageName && _hasGooglePlay)
         {
-            return await _googlePlayService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            var response = await _googlePlayService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            return AddPrefixes(response, "gp");
         }
         else if (_hasAppStore)
         {
             // Fallback to App Store if available
-            return await _appStoreService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            var response = await _appStoreService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            return AddPrefixes(response, "as");
         }
         else if (_hasGooglePlay)
         {
             // Fallback to Google Play if available
-            return await _googlePlayService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            var response = await _googlePlayService!.GetReviewsAsync(appQuery, request, cancellationToken);
+            return AddPrefixes(response, "gp");
         }
 
         throw new AppReviewFetchException(
@@ -259,6 +265,51 @@ public class OmniService : IAppReviewService
     public AppDatabase GetAppDatabase() => _appDatabase;
 
     /// <summary>
+    /// Adds service scheme prefix to all review and response IDs in a response.
+    /// </summary>
+    private ReviewPageResponse AddPrefixes(ReviewPageResponse response, string scheme)
+    {
+        foreach (var review in response.Reviews)
+        {
+            review.Id = $"{scheme}:{review.Id}";
+            
+            if (review.DeveloperResponse != null)
+            {
+                review.DeveloperResponse.Id = $"{scheme}:{review.DeveloperResponse.Id}";
+            }
+        }
+        
+        return response;
+    }
+
+    /// <summary>
+    /// Adds service scheme prefix to a single review response.
+    /// </summary>
+    private ReviewResponse AddPrefix(ReviewResponse response, string scheme)
+    {
+        response.Id = $"{scheme}:{response.Id}";
+        return response;
+    }
+
+    /// <summary>
+    /// Parses a review or response ID to extract the service scheme and the service-specific ID.
+    /// Expected format: \"scheme:serviceId\" where scheme is \"as\" or \"gp\".
+    /// </summary>
+    private (string scheme, string serviceId) ParseId(string id)
+    {
+        var colonIndex = id.IndexOf(':');
+        if (colonIndex == -1)
+        {
+            throw new ArgumentException(
+                $"Invalid ID format. Expected 'scheme:id' (e.g., 'as:123' or 'gp:com.app:456'), got '{id}'");
+        }
+        
+        var scheme = id.Substring(0, colonIndex);
+        var serviceId = id.Substring(colonIndex + 1);
+        return (scheme, serviceId);
+    }
+
+    /// <summary>
     /// Responds to a customer review. Creates a new response or updates an existing one.
     /// Routes to the appropriate service based on the review ID format.
     /// </summary>
@@ -277,30 +328,23 @@ public class OmniService : IAppReviewService
             throw new ArgumentException("Response text cannot be null or empty", nameof(responseText));
         }
 
-        // Determine which service to use based on review ID format
-        // Google Play uses "packageName:reviewId" format
-        // App Store uses just a numeric ID
-        if (reviewId.Contains(':') && _hasGooglePlay)
+        var (scheme, serviceId) = ParseId(reviewId);
+
+        var response = scheme switch
         {
-            // Google Play format
-            return await _googlePlayService!.RespondToReviewAsync(reviewId, responseText, cancellationToken);
-        }
-        else if (_hasAppStore)
-        {
-            // App Store format
-            return await _appStoreService!.RespondToReviewAsync(reviewId, responseText, cancellationToken);
-        }
-        else
-        {
-            throw new AppReviewFetchException(
-                "Unable to determine the appropriate service for this review ID, " +
-                "or no credentials are configured for the detected service.");
-        }
+            "as" when _hasAppStore => await _appStoreService!.RespondToReviewAsync(serviceId, responseText, cancellationToken),
+            "gp" when _hasGooglePlay => await _googlePlayService!.RespondToReviewAsync(serviceId, responseText, cancellationToken),
+            "as" => throw new AppReviewFetchException("App Store Connect credentials not configured."),
+            "gp" => throw new AppReviewFetchException("Google Play credentials not configured."),
+            _ => throw new ArgumentException($"Unknown review ID scheme: {scheme}. Expected 'as' or 'gp'.")
+        };
+
+        return AddPrefix(response, scheme);
     }
 
     /// <summary>
     /// Deletes a developer response to a review.
-    /// Routes to the appropriate service based on the response ID format.
+    /// Routes to the appropriate service based on the response ID scheme.
     /// Note: Google Play does not support deleting responses.
     /// </summary>
     public async Task DeleteReviewResponseAsync(
@@ -312,24 +356,22 @@ public class OmniService : IAppReviewService
             throw new ArgumentException("Response ID cannot be null or empty", nameof(responseId));
         }
 
-        // Determine which service to use based on response ID format
-        // Google Play uses "packageName:reviewId_response" format
-        // App Store uses just a UUID
-        if (responseId.Contains(':') && _hasGooglePlay)
+        var (scheme, serviceId) = ParseId(responseId);
+
+        switch (scheme)
         {
-            // Google Play - will throw NotSupportedException
-            await _googlePlayService!.DeleteReviewResponseAsync(responseId, cancellationToken);
-        }
-        else if (_hasAppStore)
-        {
-            // App Store
-            await _appStoreService!.DeleteReviewResponseAsync(responseId, cancellationToken);
-        }
-        else
-        {
-            throw new AppReviewFetchException(
-                "Unable to determine the appropriate service for this response ID, " +
-                "or no credentials are configured for the detected service.");
+            case "as" when _hasAppStore:
+                await _appStoreService!.DeleteReviewResponseAsync(serviceId, cancellationToken);
+                break;
+            case "gp" when _hasGooglePlay:
+                await _googlePlayService!.DeleteReviewResponseAsync(serviceId, cancellationToken);
+                break;
+            case "as":
+                throw new AppReviewFetchException("App Store Connect credentials not configured.");
+            case "gp":
+                throw new AppReviewFetchException("Google Play credentials not configured.");
+            default:
+                throw new ArgumentException($"Unknown response ID scheme: {scheme}. Expected 'as' or 'gp'.");
         }
     }
 }
