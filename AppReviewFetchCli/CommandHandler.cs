@@ -39,6 +39,7 @@ public class CommandHandler
         table.AddRow("status", "s", "Show credentials and authentication status");
         table.AddRow("setup", "", "Interactive wizard to configure credentials");
         table.AddRow("list", "l", "List all apps accessible with current credentials");
+        table.AddRow("list-hidden", "lh", "List hidden apps (apps hidden from normal list)");
         table.AddRow("add-app", "", "Add an app to the database manually");
         table.AddRow("edit-app [[query]]", "", "Edit app metadata (supports app ID, bundle ID, or name)");
         table.AddRow("delete-app [[query]]", "", "Delete an app from the database (supports app ID, bundle ID, or name)");
@@ -731,6 +732,58 @@ public class CommandHandler
         {
             AnsiConsole.MarkupLine($"[red]API Error:[/] {ex.Message}");
             AnsiConsole.MarkupLine($"[dim]Status: {ex.StatusCode}, Code: {ex.ErrorCode}[/]");
+        }
+    }
+
+    public async Task ListHiddenAppsAsync()
+    {
+        try
+        {
+            // Load database
+            var db = new AppDatabase(AppDatabase.GetDefaultDatabasePath());
+            await db.LoadAsync();
+
+            // Get only hidden apps
+            var hiddenApps = db.GetAllApps(includeHidden: true)
+                .Where(a => a.IsHidden)
+                .OrderBy(a => a.Name)
+                .ToList();
+
+            if (hiddenApps.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No hidden apps found[/]");
+                return;
+            }
+
+            // Display apps in a table
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderColor(Color.Grey);
+
+            table.AddColumn(new TableColumn("[bold cyan]App ID[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Name[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Bundle ID[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[bold cyan]Store[/]").LeftAligned());
+
+            foreach (var app in hiddenApps)
+            {
+                table.AddRow(
+                    $"[cyan]{app.Id}[/]",
+                    Markup.Escape(app.Name),
+                    $"[dim]{app.BundleId ?? "N/A"}[/]",
+                    $"[green]{app.Store}[/]"
+                );
+            }
+
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[grey]Total: {hiddenApps.Count} hidden app(s)[/]");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[dim]Use 'edit-app <appId>' to unhide an app[/]");
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
         }
     }
 

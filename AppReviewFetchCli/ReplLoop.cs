@@ -100,6 +100,11 @@ public class ReplLoop
                 await _commandHandler.ListAppsAsync();
                 break;
 
+            case "list-hidden":
+            case "lh":
+                await _commandHandler.ListHiddenAppsAsync();
+                break;
+
             case "add-app":
                 await _commandHandler.AddAppAsync();
                 break;
