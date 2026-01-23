@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  VERSION_PREFIX: "1.0"
+  VERSION_PREFIX: "1.1"
 
 jobs:
   build:
