@@ -140,6 +140,7 @@ public static class AppReviewTools
                         ? $"To fetch the next page, use cursor: {response.Pagination.NextCursor}"
                         : "No more pages available"
                 },
+                warnings = response.Warnings,
                 reviews = response.Reviews.Select(review => new
                 {
                     id = review.Id,

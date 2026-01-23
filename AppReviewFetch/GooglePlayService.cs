@@ -12,7 +12,13 @@ namespace AppReviewFetch;
 
 /// <summary>
 /// Service for fetching app reviews from the Google Play Developer API.
+/// 
+/// IMPORTANT: The Google Play API only returns reviews created or modified within the LAST 7 DAYS.
+/// For historical reviews, you must download the CSV file from Play Console:
+/// Play Console → Quality → Reviews → Download reviews
+/// 
 /// Documentation: https://developers.google.com/android-publisher/api-ref/rest/v3/reviews
+/// Limitation: https://developers.google.com/android-publisher/reply-to-reviews
 /// </summary>
 public class GooglePlayService : IAppReviewService
 {
@@ -405,10 +411,19 @@ public class GooglePlayService : IAppReviewService
             HasMorePages = !string.IsNullOrEmpty(apiResponse.TokenPagination?.NextPageToken)
         };
 
+        var warnings = new List<string>();
+        
+        // Only warn about 7-day limitation if no reviews were found
+        if (reviews.Count == 0)
+        {
+            warnings.Add("Google Play API only returns reviews created or modified within the last 7 days. For historical reviews, download CSV from Play Console → Quality → Reviews → Download reviews.");
+        }
+
         return new ReviewPageResponse
         {
             Reviews = reviews,
-            Pagination = pagination
+            Pagination = pagination,
+            Warnings = warnings
         };
     }
 

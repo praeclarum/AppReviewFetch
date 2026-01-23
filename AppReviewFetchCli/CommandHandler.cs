@@ -465,6 +465,16 @@ public class CommandHandler
                     if (pageNumber == 1)
                     {
                         AnsiConsole.MarkupLine("[yellow]No reviews found[/]");
+                        
+                        // Display any warnings
+                        if (response.Warnings.Count > 0)
+                        {
+                            AnsiConsole.WriteLine();
+                            foreach (var warning in response.Warnings)
+                            {
+                                AnsiConsole.MarkupLine($"[yellow]ℹ {Markup.Escape(warning)}[/]");
+                            }
+                        }
                     }
                     break;
                 }

@@ -16,6 +16,11 @@ public class ReviewPageResponse
     /// Pagination information.
     /// </summary>
     public PaginationMetadata Pagination { get; set; } = new();
+
+    /// <summary>
+    /// Warnings or informational messages about the data.
+    /// </summary>
+    public List<string> Warnings { get; set; } = new();
 }
 
 /// <summary>
